@@ -1,0 +1,16 @@
+{
+  "name": "abc",
+  "version": "1.0.0",
+  "description": "A scientifically accurate, fully interactive 3D human heart model built with Three.js (WebGL).  \r Designed for MCA project submission.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "fast-check": "^4.6.0"
+  }
+}

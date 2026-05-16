@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Coronary Angiography Report — CardioViz 3D</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{background:#dde3ea;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px;}
+    /* ── Action bar (hidden on print) ── */
+    .action-bar{background:#1a3a5c;padding:10px 28px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;}
+    .action-bar .logo{color:#fff;font-size:15px;font-weight:800;margin-right:auto;display:flex;align-items:center;gap:8px;}
+    .action-bar .logo span{color:#4db8e8;}
+    .abtn{padding:8px 18px;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:6px;}
+    .abtn-back{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2);}
+    .abtn-print{background:#0a9396;color:#fff;}
+    .abtn-pdf{background:#e8405a;color:#fff;}
+    .abtn:hover{opacity:0.85;}
+    /* ── Paper ── */
+    .paper-wrap{max-width:820px;margin:28px auto 48px;padding:0 16px;}
+    .paper{background:#fff;padding:56px 64px;box-shadow:0 4px 28px rgba(0,0,0,0.12);color:#111;line-height:1.65;}
+    /* ── Report title ── */
+    .r-title{text-align:center;font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;font-family:Arial,sans-serif;}
+    .r-subtitle{text-align:center;font-size:11px;color:#666;margin-bottom:28px;letter-spacing:0.5px;}
+    .r-divider{border:none;border-top:2px solid #111;margin-bottom:24px;}
+    /* ── Section heading ── */
+    .r-h2{font-size:14px;font-weight:800;font-family:Arial,sans-serif;margin:20px 0 8px;border-bottom:1.5px solid #333;padding-bottom:3px;}
+    /* ── Patient table ── */
+    .pt-tbl{border-collapse:collapse;width:58%;margin-bottom:4px;}
+    .pt-tbl td{border:1px solid #bbb;padding:5px 10px;font-size:12.5px;vertical-align:top;}
+    .pt-tbl td:first-child{background:#f4f4f4;font-weight:700;width:40%;}
+    /* ── Body text ── */
+    .r-p{margin:0 0 6px;font-size:13px;}
+    /* ── Findings list ── */
+    .r-list{list-style:none;padding:0;margin:4px 0;}
+    .r-list li{padding:3px 0;font-size:13px;}
+    .r-list li::before{content:"• ";font-weight:900;}
+    /* ── Severity colors ── */
+    .sv{font-weight:700;}
+    .sv-severe{color:#c0135a;}
+    .sv-moderate{color:#cc5500;}
+    .sv-mild{color:#b8860b;}
+    .sv-normal{color:#2a9d6e;}
+    /* ── Two-column ── */
+    .r-two{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:4px;}
+    /* ── Signature ── */
+    .sig{margin-top:32px;padding-top:12px;border-top:1px solid #ccc;}
+    .sig p{margin:3px 0;font-size:13px;}
+    .sig-line{margin-top:36px;border-top:1px solid #888;padding-top:5px;font-size:11px;color:#777;text-align:center;}
+    /* ── Disclaimer ── */
+    .r-disc{margin-top:24px;border:1px solid #ccc;padding:10px 14px;font-size:11px;color:#555;background:#fafafa;}
+    /* ── Preview image ── */
+    .preview-img{width:100%;max-height:200px;object-fit:contain;border:1px solid #ccc;border-radius:6px;margin-top:8px;}
+    /* ── Print ── */
+    @media print{
+      body{background:#fff;}
+      .action-bar{display:none!important;}
+      .paper-wrap{margin:0;padding:0;max-width:100%;}
+      .paper{box-shadow:none;padding:32px 44px;}
+      @page{size:A4;margin:15mm 18mm;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Action bar -->
+  <div class="action-bar">
+    <div class="logo">&#10084; Cardio<span>Viz</span> 3D</div>
+    <button class="abtn abtn-back" onclick="history.back()">&#8592; Back to 3D View</button>
+    <button class="abtn abtn-print" onclick="window.print()">&#128438; Print Report</button>
+    <button class="abtn abtn-pdf"   onclick="downloadPDF()">&#8659; Download PDF</button>
+  </div>
+
+  <div class="paper-wrap">
+    <div class="paper">
+
+      <div class="r-title">Coronary Angiography Report</div>
+      <div class="r-subtitle">CardioViz 3D — AI-Assisted Cardiac Diagnostic System</div>
+      <hr class="r-divider"/>
+
+      <!-- 1. Patient Details -->
+      <div class="r-h2">Patient Details</div>
+      <table class="pt-tbl">
+        <tr><td>Patient Name</td><td id="d-name">—</td></tr>
+        <tr><td>Age / Gender</td><td id="d-age-gender">—</td></tr>
+        <tr><td>Patient ID</td><td id="d-id">—</td></tr>
+        <tr><td>Date of Procedure</td><td id="d-date">—</td></tr>
+        <tr><td>Analysis Source</td><td id="d-source">—</td></tr>
+        <tr><td>Referring Physician</td><td>Dr. [Physician Name]</td></tr>
+        <tr><td>Hospital Name</td><td>CardioViz Diagnostic Center</td></tr>
+      </table>
+
+      <!-- 2. Clinical History -->
+      <div class="r-h2">Clinical History &amp; Indication</div>
+      <p class="r-p" id="d-history">—</p>
+
+      <!-- 3. Procedure Details -->
+      <div class="r-h2">Procedure Details</div>
+      <p class="r-p" id="d-procedure">—</p>
+
+      <!-- 4. Video Analysis Preview (only for video source) -->
+      <div id="preview-section" style="display:none;">
+        <div class="r-h2">Video Analysis Preview</div>
+        <img id="preview-img" class="preview-img" alt="Annotated analysis frame"/>
+      </div>
+
+      <!-- 5. Coronary Angiography Findings -->
+      <div class="r-h2">Coronary Angiography Findings</div>
+      <ul class="r-list" id="d-findings"></ul>
+
+      <!-- Two-column: Impression + Recommendations / Signature -->
+      <div class="r-two">
+        <div>
+          <div class="r-h2" style="margin-top:18px;">Impression</div>
+          <p class="r-p" id="d-impression">—</p>
+
+          <div class="r-h2">Recommendations</div>
+          <p class="r-p" id="d-recommendations">—</p>
+        </div>
+        <div>
+          <div class="sig">
+            <p><strong>Reporting Cardiologist:</strong></p>
+            <p>Dr. Anil Deshmukh, MD (Cardiology)</p>
+            <p>Registration No: MCI-123456</p>
+            <p>Date: <span id="d-sig-date">—</span></p>
+            <div class="sig-line">Authorized Signature</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="r-disc">
+        <strong>Disclaimer:</strong> This report is generated by an AI-assisted visualization system (CardioViz 3D) for educational and research purposes only.
+        It does not constitute a formal medical diagnosis. All findings must be reviewed and confirmed by a qualified interventional cardiologist before any clinical decision is made.
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    window.SID = params.get('sid') || sessionStorage.getItem('session_id') || '';
+    const API  = 'http://localhost:5000';
+    const SEV_ORDER = {severe:0,moderate:1,mild:2,normal:3,healthy:4};
+
+    function sc(s){ return s==='severe'?'sv-severe':s==='moderate'?'sv-moderate':s==='mild'?'sv-mild':'sv-normal'; }
+    function pct(f){ return f.severity_pct>0?f.severity_pct:Math.round(f.ratio*100); }
+
+    function buildFindings(findings){
+      const ul = document.getElementById('d-findings');
+      const ARTERIES = [
+        {key:'LEFT MAIN',    label:'Left Main Coronary Artery (LMCA)'},
+        {key:'LEFT ANTERIOR',label:'Left Anterior Descending (LAD)'},
+        {key:'LEFT CIRCUMFLEX',label:'Left Circumflex (LCX)'},
+        {key:'RIGHT CORONARY',label:'Right Coronary Artery (RCA)'},
+      ];
+      if(!findings.length){
+        ul.innerHTML='<li>No significant coronary artery disease detected. All vessels appear normal.</li>';
+        return;
+      }
+      // Map findings to arteries
+      const used = new Set();
+      ARTERIES.forEach(({key,label})=>{
+        const f = findings.find(f=>f.structure.toUpperCase().includes(key) || f.structure.toUpperCase().includes(key.split(' ').pop()));
+        const li = document.createElement('li');
+        if(f){
+          used.add(f.structure);
+          const p2=pct(f), seg=f.zone?.label||'proximal';
+          li.innerHTML=`<strong>${label}:</strong> <span class="sv ${sc(f.severity)}">${p2}% stenosis in ${seg} segment — ${f.severity.toUpperCase()}</span>`;
+        } else {
+          li.innerHTML=`<strong>${label}:</strong> <span class="sv sv-normal">Normal flow, no significant stenosis</span>`;
+        }
+        ul.appendChild(li);
+      });
+      // Extra structures
+      findings.filter(f=>!used.has(f.structure)).forEach(f=>{
+        const li=document.createElement('li');
+        li.innerHTML=`<strong>${f.structure}:</strong> <span class="sv ${sc(f.severity)}">${pct(f)}% stenosis — ${f.severity.toUpperCase()}</span>`;
+        ul.appendChild(li);
+      });
+    }
+
+    function buildImpression(findings){
+      const el=document.getElementById('d-impression');
+      if(!findings.length){el.textContent='No significant coronary artery disease. Normal coronary anatomy.';return;}
+      const sev=findings.filter(f=>f.severity==='severe');
+      const mod=findings.filter(f=>f.severity==='moderate');
+      const vd=findings.length>=3?'Triple vessel':findings.length===2?'Double vessel':'Single vessel';
+      let t=`${vd} coronary artery disease`;
+      if(sev.length) t+=` with significant stenosis in ${sev.map(f=>f.structure).join(', ')}`;
+      if(mod.length) t+=`${sev.length?'; moderate':' with moderate'} involvement of ${mod.map(f=>f.structure).join(', ')}`;
+      el.textContent=t+'.';
+    }
+
+    function buildRecommendations(findings){
+      const el=document.getElementById('d-recommendations');
+      const hasSev=findings.some(f=>f.severity==='severe');
+      const hasMod=findings.some(f=>f.severity==='moderate');
+      const recs=[];
+      if(!findings.length){
+        recs.push('Continue optimal medical management and routine cardiac surveillance.');
+        recs.push('Lifestyle modification: diet, exercise, and risk factor control.');
+      } else {
+        if(hasSev) recs.push('Percutaneous coronary intervention (PCI) with stenting is recommended for severe lesions.');
+        if(hasSev) recs.push('Consider CABG if multi-vessel severe disease is confirmed.');
+        if(hasMod) recs.push('Optimise medical management: antiplatelet therapy, statin, beta-blocker.');
+        recs.push('Continue optimal medical management and risk factor control.');
+        recs.push('Follow-up angiography in 6 months to assess disease progression.');
+      }
+      el.textContent=recs.join(' ');
+    }
+
+    async function loadReport(){
+      const now=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+      document.getElementById('d-sig-date').textContent=now;
+      if(!SID){window.location.href='patient.html';return;}
+      try{
+        const res=await fetch(`${API}/api/session/${SID}`);
+        const data=await res.json();
+        if(!res.ok) throw new Error(data.error);
+        const p=data.patient||{};
+        document.getElementById('d-name').textContent      =p.name||'—';
+        document.getElementById('d-age-gender').textContent=`${p.age||'—'} / ${p.gender||'—'}`;
+        document.getElementById('d-id').textContent        =p.patient_id||'—';
+        document.getElementById('d-date').textContent      =p.report_date||now;
+        document.getElementById('d-sig-date').textContent  =p.report_date||now;
+        document.getElementById('d-source').textContent    =data.source==='nlp'?'Text Report (NLP Analysis)':'Video Analysis (AI)';
+        document.getElementById('d-history').textContent   =
+          `Patient ${p.name||''} (${p.age||'—'} years, ${p.gender||'—'}) presented with chest pain and shortness of breath on exertion. `+
+          `History of hypertension and diabetes mellitus. Angiography advised to evaluate suspected coronary artery disease.`;
+        document.getElementById('d-procedure').textContent =
+          data.source==='nlp'
+            ?'Report analyzed via NLP text extraction. Coronary findings extracted from free-text angiography report using AI-assisted parsing.'
+            :'Coronary angiography video analyzed via AI frame extraction. Multiple standard views processed including LAO, RAO, Cranial and Caudal projections. '+(data.frames_analyzed?`${data.frames_analyzed} frames analyzed.`:'');
+        // Video preview
+        if(data.preview_frame){
+          document.getElementById('preview-section').style.display='block';
+          document.getElementById('preview-img').src='data:image/jpeg;base64,'+data.preview_frame;
+        }
+        const findings=(data.findings||[]).sort((a,b)=>(SEV_ORDER[a.severity]||9)-(SEV_ORDER[b.severity]||9));
+        buildFindings(findings);
+        buildImpression(findings);
+        buildRecommendations(findings);
+      }catch(err){
+        document.getElementById('d-findings').innerHTML=`<li style="color:red;">Error loading report: ${err.message}</li>`;
+      }
+    }
+
+    function downloadPDF(){
+      const s=document.createElement('style');
+      s.textContent='@page{size:A4;margin:15mm 18mm;}';
+      document.head.appendChild(s);
+      window.print();
+      setTimeout(()=>document.head.removeChild(s),1000);
+    }
+
+    loadReport();
+  </script>
+</body>
+</html>

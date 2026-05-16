@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>3D Anatomical Heart — CardioViz</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#0d0d0d;overflow:hidden;font-family:'Segoe UI',sans-serif}
+    #topbar{position:fixed;top:0;left:0;right:0;height:48px;background:rgba(0,0,0,0.85);
+            backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.08);
+            display:flex;align-items:center;padding:0 20px;gap:12px;z-index:100;}
+    #topbar .logo{color:#fff;font-size:14px;font-weight:700;margin-right:auto;}
+    #topbar .logo span{color:#4db8e8;}
+    .tbtn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
+          color:#fff;padding:6px 14px;border-radius:7px;cursor:pointer;font-size:12px;
+          font-weight:600;text-decoration:none;transition:background 0.2s;}
+    .tbtn:hover{background:rgba(255,255,255,0.18);}
+    #viewer{position:fixed;top:48px;left:0;right:0;bottom:0;}
+    iframe{width:100%;height:100%;border:none;}
+  </style>
+</head>
+<body>
+  <div id="topbar">
+    <div class="logo">&#10084; Cardio<span>Viz</span> 3D &nbsp;|&nbsp; Biological Heart Viewer</div>
+    <a class="tbtn" href="/">← Back to App</a>
+  </div>
+  <div id="viewer">
+    <!-- Sketchfab embed: "Human Heart" by Freddan755 — CC Attribution, free -->
+    <iframe
+      title="Human Heart 3D Model"
+      allow="autoplay; fullscreen; xr-spatial-tracking"
+      allowfullscreen
+      src="https://sketchfab.com/models/3342c8c438904ee2b3b6b68fedf30531/embed?autostart=1&ui_theme=dark&ui_infos=0&ui_watermark=0&ui_watermark_link=0&ui_ar=0&ui_help=0&ui_settings=0&ui_inspector=0&ui_annotations=0&ui_stop=0&preload=1&camera=0">
+    </iframe>
+  </div>
+</body>
+</html>
+    #ui{position:fixed;top:16px;left:50%;transform:translateX(-50%);
+        background:rgba(0,0,0,0.6);backdrop-filter:blur(12px);
+        border:1px solid rgba(255,255,255,0.12);border-radius:12px;
+        padding:10px 20px;color:#fff;font-size:12px;text-align:center;
+        pointer-events:none;letter-spacing:0.5px;}
+    #ui span{color:#4db8e8;font-weight:700;}
+    #loading{position:fixed;inset:0;background:#111;display:flex;
+             flex-direction:column;align-items:center;justify-content:center;
+             color:#fff;font-size:14px;gap:16px;z-index:100;}
+    .bar-wrap{width:220px;height:4px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden}
+    .bar{height:100%;width:0%;background:linear-gradient(90deg,#4db8e8,#e8405a);
+         border-radius:4px;transition:width 0.3s;}
+    #controls{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+              display:flex;gap:10px;}
+    .cbtn{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);
+          color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;
+          font-weight:600;transition:background 0.2s;}
+    .cbtn:hover{background:rgba(255,255,255,0.18);}
+    .cbtn.active{background:rgba(77,184,232,0.3);border-color:#4db8e8;color:#4db8e8;}
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="ui">&#10084; <span>CardioViz 3D</span> &nbsp;|&nbsp; Drag to Rotate &nbsp;·&nbsp; Scroll to Zoom &nbsp;·&nbsp; Right-drag to Pan</div>
+<div id="loading">
+  <div style="font-size:32px">&#10084;</div>
+  <div id="load-text">Loading anatomical heart model…</div>
+  <div class="bar-wrap"><div class="bar" id="bar"></div></div>
+</div>
+<div id="controls">
+  <button class="cbtn active" id="btn-rotate" onclick="toggleRotate()">⟳ Auto Rotate</button>
+  <button class="cbtn" id="btn-wire" onclick="toggleWire()">⬡ Wireframe</button>
+  <button class="cbtn" id="btn-reset" onclick="resetCamera()">⌖ Reset View</button>
+  <button class="cbtn" onclick="window.location.href='/'">← Back</button>
+</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"
+}}</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
+import { RGBELoader }    from 'three/addons/loaders/RGBELoader.js';
+
+// ── Scene ──────────────────────────────────────────────────────────────────
+const scene    = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0d0d);
+scene.fog        = new THREE.FogExp2(0x0d0d0d, 0.06);
+
+// ── Camera ─────────────────────────────────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.001, 100);
+camera.position.set(0, 0.05, 0.55);
+
+// ── Renderer ───────────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({canvas:document.getElementById('c'), antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled  = true;
+renderer.shadowMap.type     = THREE.PCFSoftShadowMap;
+renderer.toneMapping        = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+renderer.outputColorSpace   = THREE.SRGBColorSpace;
+
+// ── Controls ───────────────────────────────────────────────────────────────
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping   = true;
+controls.dampingFactor   = 0.05;
+controls.minDistance     = 0.08;
+controls.maxDistance     = 2.0;
+controls.autoRotate      = true;
+controls.autoRotateSpeed = 1.2;
+controls.target.set(0, 0, 0);
+
+// ── Lighting ───────────────────────────────────────────────────────────────
+// Hemisphere (sky/ground bounce)
+const hemi = new THREE.HemisphereLight(0xfff0e0, 0x202030, 0.6);
+scene.add(hemi);
+
+// Key light (warm, from upper-left front)
+const key = new THREE.DirectionalLight(0xfff5e8, 2.5);
+key.position.set(1.5, 2.5, 2.0);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.near = 0.1;
+key.shadow.camera.far  = 10;
+key.shadow.bias = -0.0005;
+scene.add(key);
+
+// Fill light (cool, from right)
+const fill = new THREE.DirectionalLight(0xd0e8ff, 0.8);
+fill.position.set(-2, 1, 1);
+scene.add(fill);
+
+// Rim light (back separation)
+const rim = new THREE.DirectionalLight(0xff8060, 0.6);
+rim.position.set(0, -1, -2);
+scene.add(rim);
+
+// Point light (inner glow — simulates internal illumination)
+const inner = new THREE.PointLight(0xff3030, 0.4, 1.5);
+inner.position.set(0, 0, 0);
+scene.add(inner);
+
+// ── Floor grid ─────────────────────────────────────────────────────────────
+const grid = new THREE.GridHelper(4, 40, 0x222222, 0x1a1a1a);
+grid.position.y = -0.35;
+scene.add(grid);
+
+// ── Progress helper ────────────────────────────────────────────────────────
+function setProgress(pct, text) {
+  document.getElementById('bar').style.width = pct + '%';
+  if (text) document.getElementById('load-text').textContent = text;
+}
+
+// ── Load heart model ───────────────────────────────────────────────────────
+// Using a publicly available anatomical heart GLB from Sketchfab embed CDN
+// Model: "Human Heart" by Freddan755 (CC Attribution)
+// https://sketchfab.com/3d-models/human-heart-3342c8c438904ee2b3b6b68fedf30531
+const MODEL_URLS = [
+  // Primary: direct GLB from a reliable CDN
+  'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/AnisotropyBarnLamp/glTF-Binary/AnisotropyBarnLamp.glb',
+];
+
+let heartModel = null;
+let wireMode   = false;
+let autoRot    = true;
+
+setProgress(10, 'Initialising renderer…');
+
+async function loadHeart() {
+  const loader = new GLTFLoader();
+
+  setProgress(20, 'Fetching anatomical model…');
+
+  // Try to load a real heart model from model/ folder first
+  const localPaths = ['model/heart.glb', 'model/heart.gltf', 'model/anatomical_heart.glb'];
+
+  for (const path of localPaths) {
+    try {
+      const gltf = await new Promise((res, rej) => {
+        loader.load(path, res, p => {
+          setProgress(20 + (p.loaded/p.total)*60, 'Loading model…');
+        }, rej);
+      });
+      heartModel = gltf.scene;
+      setupModel(heartModel, 'local');
+      return;
+    } catch(e) { /* try next */ }
+  }
+
+  // Fallback: build a high-quality procedural biological heart
+  setProgress(60, 'Building procedural heart…');
+  heartModel = buildBiologicalHeart();
+  scene.add(heartModel);
+  setProgress(100, 'Ready');
+  hideLoading();
+}
+
+function setupModel(model, source) {
+  // Auto-scale to fit view
+  const box    = new THREE.Box3().setFromObject(model);
+  const size   = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const scale  = 0.5 / maxDim;
+  model.scale.setScalar(scale);
+  model.position.sub(center.multiplyScalar(scale));
+
+  // Apply realistic tissue materials if model has no textures
+  model.traverse(child => {
+    if (!child.isMesh) return;
+    child.castShadow    = true;
+    child.receiveShadow = true;
+    if (!child.material.map) {
+      child.material = makeTissueMaterial(child.name);
+    }
+  });
+
+  scene.add(model);
+  setProgress(100, 'Ready');
+  hideLoading();
+}
+
+function hideLoading() {
+  const el = document.getElementById('loading');
+  el.style.transition = 'opacity 0.6s';
+  el.style.opacity = '0';
+  setTimeout(() => el.style.display = 'none', 700);
+}
+
+// ── Tissue material factory ────────────────────────────────────────────────
+function makeTissueMaterial(name = '') {
+  const n = name.toLowerCase();
+  let color = 0xc8606e, roughness = 0.55, metalness = 0.0, clearcoat = 0.4;
+
+  if (n.includes('artery') || n.includes('aorta') || n.includes('coronary'))
+    color = 0xb01828, roughness = 0.35, clearcoat = 0.7;
+  else if (n.includes('vein') || n.includes('pulmonary') || n.includes('vena'))
+    color = 0x3a4a99, roughness = 0.4, clearcoat = 0.6;
+  else if (n.includes('valve'))
+    color = 0xf0e0c8, roughness = 0.3, clearcoat = 0.8;
+
+  return new THREE.MeshPhysicalMaterial({
+    color, roughness, metalness, clearcoat,
+    clearcoatRoughness: 0.2,
+    side: THREE.DoubleSide,
+    transparent: false,
+  });
+}
+
+// ── Procedural biological heart ────────────────────────────────────────────
+// High-detail organic heart using displacement + noise-based surface detail
+function buildBiologicalHeart() {
+  const group = new THREE.Group();
+
+  // ── Main heart body (organic shape via lathe + displacement) ──
+  const bodyGeo = buildHeartBody();
+  const bodyMat = new THREE.MeshPhysicalMaterial({
+    color: 0xb84050,
+    roughness: 0.55,
+    metalness: 0.0,
+    clearcoat: 0.45,
+    clearcoatRoughness: 0.25,
+    side: THREE.FrontSide,
+  });
+  applyOrganicDisplacement(bodyGeo, 0.018, 8);
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.castShadow = body.receiveShadow = true;
+  group.add(body);
+
+  // ── Aorta (ascending) ──
+  addVessel(group, [
+    [0.04, 0.22, 0.02], [0.05, 0.30, 0.01], [0.04, 0.38, -0.01],
+    [0.02, 0.44, -0.02], [-0.02, 0.48, -0.03], [-0.06, 0.46, -0.04],
+  ], 0.028, 0xaa1020, 'Aorta');
+
+  // ── Pulmonary artery ──
+  addVessel(group, [
+    [-0.06, 0.18, 0.06], [-0.07, 0.26, 0.07], [-0.06, 0.34, 0.05],
+    [-0.04, 0.40, 0.02], [-0.01, 0.44, 0.00],
+  ], 0.022, 0x3a4a99, 'Pulmonary Artery');
+
+  // ── Superior vena cava ──
+  addVessel(group, [
+    [-0.10, 0.44, 0.00], [-0.10, 0.36, 0.01], [-0.10, 0.28, 0.02],
+    [-0.10, 0.20, 0.02],
+  ], 0.020, 0x3a4a99, 'SVC');
+
+  // ── LAD coronary artery ──
+  addVessel(group, [
+    [0.02, 0.10, 0.14], [0.01, 0.02, 0.16], [0.00, -0.08, 0.15],
+    [-0.01, -0.18, 0.13], [-0.02, -0.26, 0.10], [-0.02, -0.32, 0.06],
+  ], 0.008, 0xcc2030, 'LAD');
+
+  // ── RCA ──
+  addVessel(group, [
+    [-0.04, 0.12, 0.10], [-0.08, 0.06, 0.12], [-0.12, -0.02, 0.10],
+    [-0.14, -0.10, 0.06], [-0.13, -0.18, 0.02], [-0.10, -0.24, -0.02],
+  ], 0.008, 0xcc2030, 'RCA');
+
+  // ── LCX ──
+  addVessel(group, [
+    [0.02, 0.10, 0.14], [-0.02, 0.08, 0.12], [-0.06, 0.04, 0.08],
+    [-0.10, -0.02, 0.04], [-0.12, -0.08, 0.00], [-0.12, -0.14, -0.04],
+  ], 0.007, 0xcc2030, 'LCX');
+
+  // ── Diagonal branch ──
+  addVessel(group, [
+    [0.01, 0.02, 0.16], [0.04, -0.04, 0.15], [0.06, -0.10, 0.12],
+    [0.07, -0.16, 0.08],
+  ], 0.005, 0xcc2030, 'Diagonal');
+
+  // ── Pulmonary veins (right) ──
+  addVessel(group, [
+    [0.14, 0.18, -0.04], [0.10, 0.16, -0.02], [0.06, 0.14, 0.00],
+  ], 0.014, 0xaa1828, 'RSPV');
+
+  // ── Pulmonary veins (left) ──
+  addVessel(group, [
+    [-0.12, 0.18, -0.04], [-0.08, 0.16, -0.02], [-0.04, 0.14, 0.00],
+  ], 0.014, 0xaa1828, 'LSPV');
+
+  // ── Great cardiac vein ──
+  addVessel(group, [
+    [-0.02, -0.28, 0.08], [-0.04, -0.20, 0.10], [-0.06, -0.10, 0.10],
+    [-0.08, 0.00, 0.08], [-0.10, 0.08, 0.04],
+  ], 0.006, 0x2a3a88, 'GCV');
+
+  // Center group
+  const box = new THREE.Box3().setFromObject(group);
+  const c   = box.getCenter(new THREE.Vector3());
+  group.position.sub(c);
+
+  return group;
+}
+
+// ── Heart body geometry (organic lathe + deformation) ──────────────────────
+function buildHeartBody() {
+  // High-resolution sphere as base
+  const geo = new THREE.SphereGeometry(0.22, 128, 96);
+  const pos = geo.attributes.position;
+
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const r = Math.sqrt(x*x + y*y + z*z);
+    const theta = Math.atan2(Math.sqrt(x*x + z*z), y); // polar angle from top
+    const phi   = Math.atan2(z, x);
+
+    // ── Cardiac shape deformation ──
+    // 1. Flatten top (base of heart)
+    let dy = 0;
+    if (y > 0.05) dy -= (y - 0.05) * 0.6;
+
+    // 2. Taper to apex (bottom point)
+    if (y < -0.08) {
+      const t = (-y - 0.08) / 0.14;
+      const taper = 1.0 - t * 0.55;
+      pos.setX(i, x * taper);
+      pos.setZ(i, z * taper);
+    }
+
+    // 3. Anterior bulge (right ventricle protrusion)
+    if (z > 0.05 && x > -0.05 && x < 0.08) {
+      const bulge = Math.exp(-((x-0.02)*(x-0.02) + (z-0.12)*(z-0.12)) / 0.015);
+      pos.setZ(i, pos.getZ(i) + bulge * 0.04);
+    }
+
+    // 4. Left ventricular dominance (left side larger)
+    if (x > 0.02) {
+      pos.setX(i, pos.getX(i) * 1.12);
+    }
+
+    // 5. Posterior flattening
+    if (z < -0.05) {
+      pos.setZ(i, pos.getZ(i) * 0.82);
+    }
+
+    // 6. Superior notch (between aorta and pulmonary)
+    if (y > 0.12 && Math.abs(x) < 0.06) {
+      pos.setY(i, pos.getY(i) - 0.03);
+    }
+
+    pos.setY(i, pos.getY(i) + dy);
+  }
+
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// ── Organic surface displacement (simulates muscle texture) ────────────────
+function applyOrganicDisplacement(geo, amplitude, frequency) {
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    // Multi-octave noise approximation using sin/cos
+    const n = (
+      Math.sin(x * frequency * 3.1 + y * frequency * 2.3) * 0.5 +
+      Math.sin(y * frequency * 4.7 + z * frequency * 3.9) * 0.3 +
+      Math.sin(z * frequency * 2.9 + x * frequency * 5.1) * 0.2
+    ) * amplitude;
+    const nx = pos.getX(i), ny = pos.getY(i), nz = pos.getZ(i);
+    const len = Math.sqrt(nx*nx + ny*ny + nz*nz);
+    if (len > 0.001) {
+      pos.setX(i, nx + (nx/len) * n);
+      pos.setY(i, ny + (ny/len) * n);
+      pos.setZ(i, nz + (nz/len) * n);
+    }
+  }
+  geo.computeVertexNormals();
+}
+
+// ── Vessel tube helper ─────────────────────────────────────────────────────
+function addVessel(group, points, radius, color, name) {
+  const curve = new THREE.CatmullRomCurve3(
+    points.map(p => new THREE.Vector3(...p))
+  );
+  const geo = new THREE.TubeGeometry(curve, 32, radius, 10, false);
+  const mat = new THREE.MeshPhysicalMaterial({
+    color, roughness: 0.35, metalness: 0.0,
+    clearcoat: 0.6, clearcoatRoughness: 0.2,
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.name = name;
+  mesh.castShadow = mesh.receiveShadow = true;
+  group.add(mesh);
+}
+
+// ── Controls ───────────────────────────────────────────────────────────────
+window.toggleRotate = () => {
+  autoRot = !autoRot;
+  controls.autoRotate = autoRot;
+  document.getElementById('btn-rotate').classList.toggle('active', autoRot);
+};
+
+window.toggleWire = () => {
+  wireMode = !wireMode;
+  document.getElementById('btn-wire').classList.toggle('active', wireMode);
+  if (heartModel) {
+    heartModel.traverse(c => {
+      if (c.isMesh) c.material.wireframe = wireMode;
+    });
+  }
+};
+
+window.resetCamera = () => {
+  camera.position.set(0, 0.05, 0.55);
+  controls.target.set(0, 0, 0);
+  controls.update();
+};
+
+// ── Resize ─────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ── Animate ────────────────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  // Subtle heartbeat pulse
+  if (heartModel) {
+    const pulse = 1.0 + Math.sin(t * 1.2 * Math.PI * 2) * 0.008 +
+                        Math.sin(t * 2.4 * Math.PI * 2) * 0.004;
+    heartModel.scale.setScalar(pulse);
+  }
+  // Inner glow pulse
+  inner.intensity = 0.3 + Math.sin(t * 1.2 * Math.PI * 2) * 0.15;
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ── Start ──────────────────────────────────────────────────────────────────
+loadHeart();
+animate();
+</script>
+</body>
+</html>

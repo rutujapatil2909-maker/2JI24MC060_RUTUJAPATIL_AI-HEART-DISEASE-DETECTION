@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CardioViz — Login</title>
+  <link rel="stylesheet" href="medical.css" />
+  <style>
+    .login-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+    }
+
+    /* ── Left: artery analysis panel ── */
+    .login-visual {
+      background: #0d1117;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .av-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 16px 20px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      z-index: 10;
+    }
+    .av-header-icon { font-size: 18px; }
+    .av-header-title { font-size: 13px; font-weight: 700; color: #e0e8f0; letter-spacing: 1px; text-transform: uppercase; }
+    .av-body { flex: 1; display: grid; grid-template-columns: 160px 1fr 160px; grid-template-rows: 1fr auto; gap: 0; position: relative; }
+    /* Heart center */
+    .av-heart-center {
+      grid-column: 2; grid-row: 1;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; padding: 20px 0;
+    }
+    .av-heart-svg { width: 100%; max-width: 280px; filter: drop-shadow(0 8px 32px rgba(200,50,50,0.4)); animation: hb 1.5s ease-in-out infinite; }
+    @keyframes hb { 0%,100%{transform:scale(1)} 14%{transform:scale(1.04)} 28%{transform:scale(1)} 42%{transform:scale(1.025)} }
+    /* Callout labels */
+    .av-callout {
+      position: absolute; background: rgba(10,14,20,0.92);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+      padding: 7px 10px; font-size: 11px; line-height: 1.5; white-space: nowrap;
+      z-index: 5;
+    }
+    .av-callout::after { content:''; position:absolute; width:20px; height:1px; background:rgba(255,255,255,0.3); }
+    .av-callout-name { font-weight: 700; color: #e0e8f0; }
+    .av-callout-status { font-weight: 600; }
+    .av-callout-class  { font-size: 10px; color: rgba(255,255,255,0.5); }
+    .c-blocked   { color: #ff4d4d; }
+    .c-nonblock  { color: #ffc107; }
+    .c-normal    { color: #4caf50; }
+    /* Callout positions */
+    .av-c-lad  { top: 8%;  right: 8%; }
+    .av-c-lcx  { top: 22%; right: 4%; }
+    .av-c-om   { top: 42%; right: 4%; }
+    .av-c-pda  { bottom: 18%; right: 8%; }
+    .av-c-rca  { top: 18%; left: 4%; }
+    .av-c-diag { bottom: 28%; left: 6%; }
+    /* Left sidebar */
+    .av-left { grid-column:1; grid-row:1; padding: 12px 10px; display:flex; flex-direction:column; gap:12px; }
+    .av-panel { background: rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px 12px; }
+    .av-panel-title { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:1px; color:rgba(255,255,255,0.4); margin-bottom:8px; }
+    .av-cls-row { display:flex; align-items:center; gap:7px; font-size:11px; color:rgba(255,255,255,0.75); margin-bottom:5px; }
+    .av-cls-row:last-child { margin-bottom:0; }
+    .av-dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+    .av-cls-count { margin-left:auto; font-weight:700; color:#fff; }
+    .av-list-item { font-size:10px; color:rgba(255,255,255,0.65); margin-bottom:5px; line-height:1.4; }
+    .av-list-item:last-child { margin-bottom:0; }
+    .av-list-name { font-weight:600; color:rgba(255,255,255,0.85); }
+    /* Right sidebar */
+    .av-right { grid-column:3; grid-row:1; padding:12px 10px; display:flex; flex-direction:column; gap:12px; }
+    /* Bottom bar */
+    .av-bottom { grid-column:1/-1; grid-row:2; display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; padding:10px 12px; border-top:1px solid rgba(255,255,255,0.07); }
+    .av-legend-row { display:flex; align-items:center; gap:6px; font-size:10px; color:rgba(255,255,255,0.6); margin-bottom:4px; }
+    .av-legend-line { width:20px; height:3px; border-radius:2px; }
+    .av-summary-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:4px; }
+    .av-sum-item { text-align:center; }
+    .av-sum-val { font-size:14px; font-weight:800; }
+    .av-sum-lbl { font-size:9px; color:rgba(255,255,255,0.45); }
+    .av-guide-row { display:flex; align-items:center; gap:6px; font-size:10px; color:rgba(255,255,255,0.6); margin-bottom:4px; }
+    .av-guide-desc { color:rgba(255,255,255,0.35); font-size:9px; }
+
+    /* ── Right: login form panel ── */
+    .login-form-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0f6fc;
+      padding: 48px 40px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+    .login-logo-icon { font-size: 28px; color: #ff6b9d; }
+    .login-logo-text { font-size: 20px; font-weight: 700; color: var(--text-dark); }
+    .login-logo-text strong { color: var(--teal); }
+
+    .login-heading {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text-dark);
+      margin-bottom: 6px;
+    }
+    .login-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+
+    .login-form { display: flex; flex-direction: column; gap: 18px; }
+
+    .login-form .form-group label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .login-form input[type=text],
+    .login-form input[type=password] {
+      width: 100%;
+      background: #fff;
+      border: 2px solid #e0eaf4;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text-dark);
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .login-form input:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(78,184,232,0.15);
+    }
+
+    .login-options {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+    .login-options label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-light);
+      cursor: pointer;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .login-options a {
+      color: var(--teal);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .login-options a:hover { text-decoration: underline; }
+
+    .btn-login {
+      width: 100%;
+      background: linear-gradient(135deg, #4db8e8, #3a9fd8);
+      color: #fff;
+      border: none;
+      padding: 14px;
+      border-radius: 50px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 18px rgba(78,184,232,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(78,184,232,0.5);
+    }
+
+    .login-divider {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      position: relative;
+      margin: 4px 0;
+    }
+    .login-divider::before, .login-divider::after {
+      content: '';
+      position: absolute;
+      top: 50%; width: 42%;
+      height: 1px;
+      background: #e0eaf4;
+    }
+    .login-divider::before { left: 0; }
+    .login-divider::after  { right: 0; }
+
+    .login-footer {
+      margin-top: 28px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .login-footer a { color: var(--teal); text-decoration: none; font-weight: 600; }
+
+    @media (max-width: 768px) {
+      .login-layout { grid-template-columns: 1fr; }
+      .login-visual { min-height: 280px; padding: 40px 24px; }
+      .visual-title { font-size: 20px; }
+      .login-form-panel { padding: 36px 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-layout">
+
+    <!-- Left: 3D Heart Artery Analysis -->
+    <div class="login-visual">
+      <!-- Header -->
+      <div class="av-header">
+        <span class="av-header-icon">🫀</span>
+        <span class="av-header-title">3D Heart View — Artery Analysis</span>
+      </div>
+
+      <div class="av-body">
+        <!-- Left sidebar -->
+        <div class="av-left">
+          <div class="av-panel">
+            <div class="av-panel-title">Artery Classification</div>
+            <div class="av-cls-row"><span class="av-dot" style="background:#4caf50"></span>Normal Arteries<span class="av-cls-count">3</span></div>
+            <div class="av-cls-row"><span class="av-dot" style="background:#ffc107"></span>Non-Blocked<span class="av-cls-count">2</span></div>
+            <div class="av-cls-row"><span class="av-dot" style="background:#ff4d4d"></span>Blocked Arteries<span class="av-cls-count">2</span></div>
+          </div>
+          <div class="av-panel">
+            <div class="av-panel-title">Artery List</div>
+            <div class="av-list-item"><span class="av-dot" style="background:#ff4d4d;display:inline-block;margin-right:4px;"></span><span class="av-list-name">LAD (75%)</span><br>Blocked</div>
+            <div class="av-list-item"><span class="av-dot" style="background:#ffc107;display:inline-block;margin-right:4px;"></span><span class="av-list-name">RCA (30%)</span><br>Non-Blocked</div>
+            <div class="av-list-item"><span class="av-dot" style="background:#4caf50;display:inline-block;margin-right:4px;"></span><span class="av-list-name">LCX</span><br>Normal</div>
+            <div class="av-list-item"><span class="av-dot" style="background:#4caf50;display:inline-block;margin-right:4px;"></span><span class="av-list-name">Diagonal</span><br>Normal</div>
+            <div class="av-list-item"><span class="av-dot" style="background:#ffc107;display:inline-block;margin-right:4px;"></span><span class="av-list-name">OM Branch (40%)</span><br>Non-Blocked</div>
+            <div class="av-list-item"><span class="av-dot" style="background:#ff4d4d;display:inline-block;margin-right:4px;"></span><span class="av-list-name">PDA (80%)</span><br>Blocked</div>
+            <div class="av-list-item"><span class="av-dot" style="background:#4caf50;display:inline-block;margin-right:4px;"></span><span class="av-list-name">Acute Marginal</span><br>Normal</div>
+          </div>
+        </div>
+
+        <!-- Heart center with callouts -->
+        <div class="av-heart-center">
+          <!-- Callout: LAD top-right -->
+          <div class="av-callout av-c-lad">
+            <div class="av-callout-name">LAD</div>
+            <div class="av-callout-status c-blocked">Blocked (75%)</div>
+            <div class="av-callout-class">Classified: BLOCKED</div>
+          </div>
+          <!-- Callout: LCX right -->
+          <div class="av-callout av-c-lcx">
+            <div class="av-callout-name">LCX</div>
+            <div class="av-callout-status c-normal">Normal</div>
+            <div class="av-callout-class">Classified: NORMAL</div>
+          </div>
+          <!-- Callout: OM right -->
+          <div class="av-callout av-c-om">
+            <div class="av-callout-name">OM Branch</div>
+            <div class="av-callout-status c-nonblock">Non-Blocked (40%)</div>
+            <div class="av-callout-class">Classified: NON-BLOCKED</div>
+          </div>
+          <!-- Callout: PDA bottom-right -->
+          <div class="av-callout av-c-pda">
+            <div class="av-callout-name">PDA</div>
+            <div class="av-callout-status c-blocked">Blocked (80%)</div>
+            <div class="av-callout-class">Classified: BLOCKED</div>
+          </div>
+          <!-- Callout: RCA left -->
+          <div class="av-callout av-c-rca">
+            <div class="av-callout-name">RCA</div>
+            <div class="av-callout-status c-nonblock">Non-Blocked (30%)</div>
+            <div class="av-callout-class">Classified: NON-BLOCKED</div>
+          </div>
+          <!-- Callout: Diagonal bottom-left -->
+          <div class="av-callout av-c-diag">
+            <div class="av-callout-name">Diagonal Branch</div>
+            <div class="av-callout-status c-normal">Normal</div>
+            <div class="av-callout-class">Classified: NORMAL</div>
+          </div>
+
+          <!-- Anatomical Heart SVG -->
+          <svg class="av-heart-svg" viewBox="0 0 260 240" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <radialGradient id="hg2" cx="40%" cy="35%">
+                <stop offset="0%" stop-color="#c8404a"/>
+                <stop offset="50%" stop-color="#9a1828"/>
+                <stop offset="100%" stop-color="#5a0810"/>
+              </radialGradient>
+              <radialGradient id="hg3" cx="60%" cy="40%">
+                <stop offset="0%" stop-color="#b03040"/>
+                <stop offset="100%" stop-color="#6a1020"/>
+              </radialGradient>
+            </defs>
+            <!-- Main heart body -->
+            <path d="M130 220 C80 185, 20 150, 20 90 C20 55, 42 30, 72 30 C90 30, 108 40, 130 60 C152 40, 170 30, 188 30 C218 30, 240 55, 240 90 C240 150, 180 185, 130 220Z" fill="url(#hg2)"/>
+            <!-- Left ventricle highlight -->
+            <path d="M130 60 C115 75, 105 95, 108 130 C110 155, 120 175, 130 190 C140 175, 150 155, 152 130 C155 95, 145 75, 130 60Z" fill="url(#hg3)" opacity="0.6"/>
+            <!-- Aorta -->
+            <path d="M122 55 C118 40, 114 25, 116 14 C118 6, 126 3, 134 5 C142 8, 144 18, 142 28 C140 38, 136 48, 136 55" stroke="#cc2233" stroke-width="7" stroke-linecap="round" fill="none"/>
+            <!-- Pulmonary artery -->
+            <path d="M140 52 C150 38, 162 28, 172 22 C180 17, 188 20, 190 28 C192 36, 186 44, 178 48" stroke="#4455bb" stroke-width="5" stroke-linecap="round" fill="none"/>
+            <!-- SVC -->
+            <path d="M116 50 C108 36, 100 22, 102 12 C104 4, 112 2, 118 6 C124 10, 124 22, 120 34" stroke="#4455bb" stroke-width="4" stroke-linecap="round" fill="none"/>
+            <!-- LAD (red = blocked) -->
+            <path d="M130 100 C126 118, 122 138, 120 158 C118 174, 120 190, 124 200" stroke="#ff3333" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <!-- RCA (yellow = non-blocked) -->
+            <path d="M130 95 C145 108, 165 122, 178 140 C188 154, 190 170, 186 182" stroke="#ffc107" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <!-- LCX (green = normal) -->
+            <path d="M118 88 C105 98, 88 108, 76 122 C66 134, 62 148, 66 160" stroke="#4caf50" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+            <!-- Diagonal (green) -->
+            <path d="M124 110 C114 120, 102 130, 94 144" stroke="#4caf50" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <!-- OM (yellow) -->
+            <path d="M80 128 C72 138, 68 150, 70 162" stroke="#ffc107" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <!-- PDA (red = blocked) -->
+            <path d="M178 148 C182 160, 180 174, 174 184" stroke="#ff3333" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <!-- Dot markers -->
+            <circle cx="130" cy="100" r="4" fill="#fff" opacity="0.8"/>
+            <circle cx="80"  cy="128" r="3" fill="#ffc107" opacity="0.9"/>
+            <circle cx="178" cy="148" r="3" fill="#ff4d4d" opacity="0.9"/>
+            <circle cx="66"  cy="160" r="3" fill="#4caf50" opacity="0.9"/>
+            <!-- Sheen -->
+            <path d="M82 42 C72 52, 66 68, 68 84 C70 94, 80 98, 88 94 C96 90, 98 76, 94 62 C90 50, 82 42, 82 42Z" fill="rgba(255,255,255,0.1)"/>
+          </svg>
+        </div>
+
+        <!-- Right sidebar (empty — callouts cover it) -->
+        <div class="av-right"></div>
+
+        <!-- Bottom bar -->
+        <div class="av-bottom">
+          <!-- Legend -->
+          <div class="av-panel" style="padding:8px 10px;">
+            <div class="av-panel-title">Legend</div>
+            <div class="av-legend-row"><div class="av-legend-line" style="background:#4caf50"></div>Normal Artery</div>
+            <div class="av-legend-row"><div class="av-legend-line" style="background:#ffc107"></div>Non-Blocked Artery</div>
+            <div class="av-legend-row"><div class="av-legend-line" style="background:#ff4d4d"></div>Blocked Artery</div>
+          </div>
+          <!-- Summary -->
+          <div class="av-panel" style="padding:8px 10px;">
+            <div class="av-panel-title">Summary</div>
+            <div class="av-summary-grid">
+              <div class="av-sum-item"><div class="av-sum-val" style="color:#fff">7</div><div class="av-sum-lbl">Total</div></div>
+              <div class="av-sum-item"><div class="av-sum-val c-blocked">2</div><div class="av-sum-lbl">Blocked</div></div>
+              <div class="av-sum-item"><div class="av-sum-val c-nonblock">2</div><div class="av-sum-lbl">Non-Blk</div></div>
+              <div class="av-sum-item"><div class="av-sum-val c-normal">3</div><div class="av-sum-lbl">Normal</div></div>
+            </div>
+          </div>
+          <!-- Classification guide -->
+          <div class="av-panel" style="padding:8px 10px;">
+            <div class="av-panel-title">Classification Guide</div>
+            <div class="av-guide-row"><span class="av-dot" style="background:#4caf50"></span><span class="c-normal">Normal</span><span class="av-guide-desc" style="margin-left:4px;">No blockage</span></div>
+            <div class="av-guide-row"><span class="av-dot" style="background:#ffc107"></span><span class="c-nonblock">Non-Blocked</span><span class="av-guide-desc" style="margin-left:4px;">&lt;50%</span></div>
+            <div class="av-guide-row"><span class="av-dot" style="background:#ff4d4d"></span><span class="c-blocked">Blocked</span><span class="av-guide-desc" style="margin-left:4px;">≥50%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Login Form -->
+    <div class="login-form-panel">
+      <div class="login-box">
+        <div class="login-logo">
+          <span class="login-logo-icon">&#10084;</span>
+          <span class="login-logo-text">Cardio<strong>Viz</strong></span>
+        </div>
+
+        <div class="login-heading">Welcome back</div>
+        <div class="login-sub">Sign in to your clinical account</div>
+
+        <form class="login-form" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="username">Username / Email</label>
+            <input type="text" id="username" placeholder="doctor@hospital.com" autocomplete="username" required />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required />
+          </div>
+
+          <div class="login-options">
+            <label>
+              <input type="checkbox" /> Remember me
+            </label>
+            <a href="#">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn-login">Sign In</button>
+        </form>
+
+        <div class="login-footer">
+          Don't have an account? <a href="#">Contact your administrator</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function handleLogin(e) {
+      e.preventDefault();
+      // Replace with real auth logic
+      window.location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>

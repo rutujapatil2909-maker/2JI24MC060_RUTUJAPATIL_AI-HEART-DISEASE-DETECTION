@@ -1,0 +1,460 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Coronary Angiography Reports — CardioViz 3D</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#e8e8e8;font-family:Arial,sans-serif;padding:30px 20px;color:#111;}
+.page-title{text-align:center;font-size:24px;font-weight:bold;color:#1a1a6e;margin-bottom:6px;letter-spacing:1px;}
+.page-sub{text-align:center;font-size:13px;color:#555;margin-bottom:10px;}
+.print-btn{display:block;text-align:center;margin:0 auto 28px;padding:11px 36px;background:#1a1a6e;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:bold;cursor:pointer;letter-spacing:0.5px;}
+.print-btn:hover{background:#2a2a9e;}
+.report{background:#fff;max-width:820px;margin:0 auto 50px;padding:40px 48px;border:1px solid #ccc;box-shadow:2px 2px 12px rgba(0,0,0,0.15);page-break-after:always;position:relative;}
+.watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-30deg);font-size:80px;font-weight:bold;color:rgba(26,26,110,0.04);pointer-events:none;white-space:nowrap;z-index:0;}
+.content{position:relative;z-index:1;}
+.hospital-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1a1a6e;padding-bottom:14px;margin-bottom:18px;}
+.hospital-name{font-size:20px;font-weight:bold;color:#1a1a6e;letter-spacing:0.5px;}
+.hospital-dept{font-size:12px;color:#444;margin-top:3px;}
+.hospital-addr{font-size:11px;color:#666;margin-top:2px;}
+.report-meta{text-align:right;font-size:11px;color:#444;line-height:1.7;}
+.report-meta .ref{font-size:13px;font-weight:bold;color:#1a1a6e;}
+.report-title{text-align:center;font-size:15px;font-weight:bold;color:#1a1a6e;text-transform:uppercase;letter-spacing:1px;margin:16px 0 14px;border-top:1px solid #ddd;border-bottom:1px solid #ddd;padding:8px 0;}
+.patient-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 20px;background:#f0f4ff;border:1px solid #c0c8e8;border-radius:4px;padding:12px 16px;margin-bottom:18px;font-size:12px;}
+.patient-field label{font-weight:bold;color:#333;display:block;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;}
+.patient-field span{color:#111;font-size:13px;}
+.section-head{font-size:12px;font-weight:bold;color:#fff;background:#1a1a6e;padding:5px 12px;margin:16px 0 8px;letter-spacing:0.5px;text-transform:uppercase;}
+.findings-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:4px;}
+.findings-table th{background:#e8ecf8;color:#1a1a6e;font-weight:bold;padding:7px 10px;border:1px solid #c0c8e8;text-align:left;font-size:11px;text-transform:uppercase;}
+.findings-table td{padding:7px 10px;border:1px solid #dde;vertical-align:top;line-height:1.5;}
+.findings-table tr:nth-child(even) td{background:#f8f9ff;}
+.sev-normal{color:#1a7a1a;font-weight:bold;}
+.sev-mild{color:#8a6a00;font-weight:bold;}
+.sev-moderate{color:#c05000;font-weight:bold;}
+.sev-severe{color:#c00000;font-weight:bold;}
+.sev-total{color:#7a0000;font-weight:bold;}
+.narrative{font-size:12.5px;line-height:1.8;color:#222;margin-bottom:10px;}
+.narrative p{margin-bottom:8px;}
+.impression-box{background:#fff8f0;border-left:4px solid #c05000;padding:12px 16px;margin:14px 0;font-size:12.5px;line-height:1.7;}
+.impression-box strong{color:#c05000;display:block;margin-bottom:4px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}
+.recommendation-box{background:#f0fff4;border-left:4px solid #1a7a1a;padding:12px 16px;margin:10px 0;font-size:12.5px;line-height:1.7;}
+.recommendation-box strong{color:#1a7a1a;display:block;margin-bottom:4px;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}
+.signature-row{display:flex;justify-content:space-between;margin-top:30px;padding-top:16px;border-top:1px solid #ddd;font-size:11px;color:#444;}
+.sig-block{text-align:center;}
+.sig-line{border-top:1px solid #888;width:180px;margin:0 auto 4px;}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.badge{display:inline-block;font-size:10px;font-weight:bold;padding:3px 10px;border-radius:3px;text-transform:uppercase;letter-spacing:0.5px;}
+.badge-severe{background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;}
+.badge-moderate{background:#ffe5cc;color:#7a3800;border:1px solid #ffcc99;}
+.badge-mild{background:#fff3cd;color:#856404;border:1px solid #ffeeba;}
+.badge-normal{background:#d4edda;color:#155724;border:1px solid #c3e6cb;}
+.badge-cto{background:#d6d8db;color:#383d41;border:1px solid #c6c8ca;}
+@media print{
+  body{background:#fff;padding:0;}
+  .print-btn,.page-title,.page-sub{display:none;}
+  .report{box-shadow:none;border:none;margin:0;padding:30px 40px;}
+}
+</style>
+</head>
+<body>
+<div class="page-title">CORONARY ANGIOGRAPHY REPORTS</div>
+<div class="page-sub">CardioViz 3D &mdash; 5 Sample Reports for NLP Text Analysis &nbsp;|&nbsp; Open in browser, then Print &rarr; Save as PDF</div>
+<div style="text-align:center;margin-bottom:12px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+  <button class="print-btn" style="margin:0;background:#1a1a6e;" onclick="downloadHTML()">&#11015; Download as HTML</button>
+  <button class="print-btn" style="margin:0;background:#c05000;" onclick="window.print()">&#128438; Print / Save as PDF</button>
+</div>
+<p style="text-align:center;font-size:12px;color:#666;margin-bottom:24px;">
+  <strong>Option 1 — Download:</strong> Click "Download as HTML" &rarr; file saves to your Downloads folder &rarr; open it &rarr; Ctrl+P &rarr; Save as PDF.<br/>
+  <strong>Option 2 — Direct PDF:</strong> Click "Print / Save as PDF" &rarr; in the print dialog set Destination to <em>"Save as PDF"</em> &rarr; click Save.
+</p>
+<script>
+function downloadHTML() {
+  var html = document.documentElement.outerHTML;
+  var blob = new Blob([html], {type: 'text/html;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'CardioViz_Angiography_Reports.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+</script>
+
+<!-- ═══════════════════════════════════════════════════
+     REPORT 1 — Triple Vessel Disease (Severe)
+═══════════════════════════════════════════════════ -->
+<div class="report">
+  <div class="watermark">SAMPLE</div>
+  <div class="content">
+    <div class="hospital-header">
+      <div>
+        <div class="hospital-name">&#9829; City Cardiac Centre</div>
+        <div class="hospital-dept">Department of Interventional Cardiology</div>
+        <div class="hospital-addr">12 Heart Lane, Medical District &nbsp;|&nbsp; Tel: +91-98765-43210</div>
+      </div>
+      <div class="report-meta">
+        <div class="ref">REF: CCC/ANGIO/2026/0501</div>
+        <div>Date: 05 May 2026</div>
+        <div>Operator: Dr. A. Sharma, DM Cardiology</div>
+        <div>Referring: Dr. P. Mehta, MD Medicine</div>
+      </div>
+    </div>
+
+    <div class="report-title">Coronary Angiography Report</div>
+
+    <div class="patient-grid">
+      <div class="patient-field"><label>Patient Name</label><span>John Smith</span></div>
+      <div class="patient-field"><label>Patient ID</label><span>PT-2026-001</span></div>
+      <div class="patient-field"><label>Age / Sex</label><span>58 Years / Male</span></div>
+      <div class="patient-field"><label>Date of Procedure</label><span>05/05/2026</span></div>
+      <div class="patient-field"><label>Indication</label><span>Unstable Angina, NSTEMI</span></div>
+      <div class="patient-field"><label>Access</label><span>Right Radial, 6Fr</span></div>
+    </div>
+
+    <div class="badge-row">
+      <span class="badge badge-severe">Triple Vessel Disease</span>
+      <span class="badge badge-cto">CTO — Mid RCA</span>
+      <span class="badge badge-severe">CABG Indicated</span>
+    </div>
+
+    <div class="section-head">Coronary Angiography Findings</div>
+    <div class="narrative">
+      <p><strong>Dominance:</strong> Right dominant system.</p>
+      <p><strong>Left Main Stem (LMS):</strong> The left main stem appears normal with no significant disease. Ostium and shaft are widely patent.</p>
+      <p><strong>Left Anterior Descending Artery (LAD):</strong> There is 85% stenosis in the proximal LAD with significant calcification noted on fluoroscopy. The mid LAD shows 70% narrowing with eccentric plaque. Distal LAD is patent with TIMI-3 flow.</p>
+      <p><strong>Left Circumflex Artery (LCx):</strong> The proximal LCx demonstrates 75% stenosis. The first obtuse marginal (OM1) shows 60% narrowing consistent with moderate disease. Distal LCx is patent.</p>
+      <p><strong>Right Coronary Artery (RCA):</strong> The proximal RCA has 90% stenosis with ulcerated plaque. The mid RCA shows total occlusion consistent with a chronic total occlusion (CTO) — no antegrade flow. The posterior descending artery (PDA) fills via left-to-right collaterals. Distal RCA shows 65% stenosis.</p>
+    </div>
+
+    <div class="section-head">Findings Summary Table</div>
+    <table class="findings-table">
+      <tr><th>Vessel</th><th>Segment</th><th>Stenosis</th><th>Severity</th><th>Notes</th></tr>
+      <tr><td>LAD</td><td>Proximal</td><td>85%</td><td class="sev-severe">SEVERE</td><td>Calcified, eccentric plaque</td></tr>
+      <tr><td>LAD</td><td>Mid</td><td>70%</td><td class="sev-severe">SEVERE</td><td>Eccentric plaque</td></tr>
+      <tr><td>LCx</td><td>Proximal</td><td>75%</td><td class="sev-severe">SEVERE</td><td>Smooth lesion</td></tr>
+      <tr><td>OM1</td><td>Proximal</td><td>60%</td><td class="sev-moderate">MODERATE</td><td>FFR recommended</td></tr>
+      <tr><td>RCA</td><td>Proximal</td><td>90%</td><td class="sev-severe">SEVERE</td><td>Ulcerated plaque</td></tr>
+      <tr><td>RCA</td><td>Mid</td><td>100%</td><td class="sev-total">TOTAL OCCLUSION</td><td>CTO — collateral fill from LCx</td></tr>
+      <tr><td>RCA (PDA)</td><td>Distal</td><td>65%</td><td class="sev-moderate">MODERATE</td><td>Via collaterals</td></tr>
+    </table>
+
+    <div class="impression-box">
+      <strong>Impression</strong>
+      Severe triple vessel coronary artery disease with proximal LAD 85% stenosis, proximal LCx 75% stenosis, proximal RCA 90% stenosis, and mid RCA chronic total occlusion (CTO). Left ventricular function moderately impaired (EF ~40% on ventriculography).
+    </div>
+    <div class="recommendation-box">
+      <strong>Recommendation</strong>
+      Surgical revascularisation (CABG) is strongly recommended given the extent and complexity of disease (SYNTAX score ~38). Cardiothoracic surgery referral arranged. Continue dual antiplatelet therapy and high-intensity statin pending surgery.
+    </div>
+
+    <div class="signature-row">
+      <div class="sig-block"><div class="sig-line"></div>Dr. A. Sharma, DM Cardiology<br/>Interventional Cardiologist</div>
+      <div class="sig-block"><div class="sig-line"></div>Dr. P. Mehta, MD Medicine<br/>Referring Physician</div>
+      <div class="sig-block" style="font-size:10px;color:#1a1a6e;border:2px solid #1a1a6e;border-radius:50%;width:70px;height:70px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:bold;margin:0 auto;">CITY<br/>CARDIAC<br/>CENTRE</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     REPORT 2 — Mild Non-Obstructive Disease
+═══════════════════════════════════════════════════ -->
+<div class="report">
+  <div class="watermark">SAMPLE</div>
+  <div class="content">
+    <div class="hospital-header">
+      <div>
+        <div class="hospital-name">&#9829; Apollo Heart Institute</div>
+        <div class="hospital-dept">Cath Lab &amp; Interventional Cardiology</div>
+        <div class="hospital-addr">45 Wellness Avenue, Health City &nbsp;|&nbsp; Tel: +91-80000-12345</div>
+      </div>
+      <div class="report-meta">
+        <div class="ref">REF: AHI/CATH/2026/0502</div>
+        <div>Date: 05 May 2026</div>
+        <div>Operator: Dr. S. Patel, DM Cardiology</div>
+        <div>Referring: Dr. R. Gupta, MD General Medicine</div>
+      </div>
+    </div>
+
+    <div class="report-title">Coronary Angiography Report</div>
+
+    <div class="patient-grid">
+      <div class="patient-field"><label>Patient Name</label><span>Sarah Johnson</span></div>
+      <div class="patient-field"><label>Patient ID</label><span>PT-2026-002</span></div>
+      <div class="patient-field"><label>Age / Sex</label><span>45 Years / Female</span></div>
+      <div class="patient-field"><label>Date of Procedure</label><span>05/05/2026</span></div>
+      <div class="patient-field"><label>Indication</label><span>Atypical chest pain, positive stress test</span></div>
+      <div class="patient-field"><label>Access</label><span>Right Radial, 5Fr</span></div>
+    </div>
+
+    <div class="badge-row">
+      <span class="badge badge-mild">Non-Obstructive CAD</span>
+      <span class="badge badge-normal">Medical Management</span>
+    </div>
+
+    <div class="section-head">Coronary Angiography Findings</div>
+    <div class="narrative">
+      <p><strong>Dominance:</strong> Right dominant system.</p>
+      <p><strong>Left Main Stem (LMS):</strong> The left main coronary artery is normal with no stenosis. Widely patent throughout its length.</p>
+      <p><strong>Left Anterior Descending Artery (LAD):</strong> The proximal LAD shows 30% stenosis, consistent with mild non-obstructive disease. Mid LAD and distal LAD are angiographically normal with TIMI-3 flow throughout.</p>
+      <p><strong>Left Circumflex Artery (LCx):</strong> Mild 25% narrowing in the mid circumflex artery. The distal LCx is patent with no significant disease. Obtuse marginal branches are normal.</p>
+      <p><strong>Right Coronary Artery (RCA):</strong> The right coronary artery shows 35% stenosis in the proximal segment. Mid and distal RCA are normal. PDA and posterolateral branches are patent.</p>
+    </div>
+
+    <div class="section-head">Findings Summary Table</div>
+    <table class="findings-table">
+      <tr><th>Vessel</th><th>Segment</th><th>Stenosis</th><th>Severity</th><th>Notes</th></tr>
+      <tr><td>LMS</td><td>Ostium/Shaft</td><td>0%</td><td class="sev-normal">NORMAL</td><td>Widely patent</td></tr>
+      <tr><td>LAD</td><td>Proximal</td><td>30%</td><td class="sev-mild">MILD</td><td>Non-obstructive</td></tr>
+      <tr><td>LAD</td><td>Mid/Distal</td><td>0%</td><td class="sev-normal">NORMAL</td><td>Patent, TIMI-3</td></tr>
+      <tr><td>LCx</td><td>Mid</td><td>25%</td><td class="sev-mild">MILD</td><td>Non-obstructive</td></tr>
+      <tr><td>RCA</td><td>Proximal</td><td>35%</td><td class="sev-mild">MILD</td><td>Non-obstructive</td></tr>
+      <tr><td>RCA</td><td>Mid/Distal</td><td>0%</td><td class="sev-normal">NORMAL</td><td>Patent</td></tr>
+    </table>
+
+    <div class="impression-box">
+      <strong>Impression</strong>
+      Mild non-obstructive coronary artery disease in all three vessels. No haemodynamically significant stenosis identified. Left ventricular function preserved (EF ~65%). The positive stress test is likely due to microvascular dysfunction or non-cardiac cause.
+    </div>
+    <div class="recommendation-box">
+      <strong>Recommendation</strong>
+      Medical therapy recommended: aspirin 75mg OD, statin therapy, lifestyle modification. Repeat imaging in 12 months or earlier if symptoms worsen. Consider cardiac MRI for microvascular assessment. No revascularisation required at this time.
+    </div>
+
+    <div class="signature-row">
+      <div class="sig-block"><div class="sig-line"></div>Dr. S. Patel, DM Cardiology<br/>Interventional Cardiologist</div>
+      <div class="sig-block"><div class="sig-line"></div>Dr. R. Gupta, MD Medicine<br/>Referring Physician</div>
+      <div class="sig-block" style="font-size:10px;color:#1a1a6e;border:2px solid #1a1a6e;border-radius:50%;width:70px;height:70px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:bold;margin:0 auto;">APOLLO<br/>HEART<br/>INST.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     REPORT 3 — Critical Single Vessel (LAD Subtotal)
+═══════════════════════════════════════════════════ -->
+<div class="report">
+  <div class="watermark">SAMPLE</div>
+  <div class="content">
+    <div class="hospital-header">
+      <div>
+        <div class="hospital-name">&#9829; National Heart Hospital</div>
+        <div class="hospital-dept">Emergency Cardiac Catheterisation Laboratory</div>
+        <div class="hospital-addr">7 Coronary Road, Capital City &nbsp;|&nbsp; Tel: +91-11-2345-6789</div>
+      </div>
+      <div class="report-meta">
+        <div class="ref">REF: NHH/EMERG/2026/0503</div>
+        <div>Date: 05 May 2026</div>
+        <div>Operator: Dr. V. Kumar, DM Cardiology</div>
+        <div>Referring: Dr. T. Singh, MD Emergency Medicine</div>
+      </div>
+    </div>
+
+    <div class="report-title">Urgent Coronary Angiography Report</div>
+
+    <div class="patient-grid">
+      <div class="patient-field"><label>Patient Name</label><span>Rajesh Kumar</span></div>
+      <div class="patient-field"><label>Patient ID</label><span>PT-2026-003</span></div>
+      <div class="patient-field"><label>Age / Sex</label><span>52 Years / Male</span></div>
+      <div class="patient-field"><label>Date of Procedure</label><span>05/05/2026</span></div>
+      <div class="patient-field"><label>Indication</label><span>Acute STEMI — Anterior Wall</span></div>
+      <div class="patient-field"><label>Access</label><span>Right Radial, 6Fr (Emergency)</span></div>
+    </div>
+
+    <div class="badge-row">
+      <span class="badge badge-severe">Critical LAD Disease</span>
+      <span class="badge badge-cto">Subtotal Occlusion — Proximal LAD</span>
+      <span class="badge badge-severe">Urgent PCI Indicated</span>
+    </div>
+
+    <div class="section-head">Coronary Angiography Findings</div>
+    <div class="narrative">
+      <p><strong>Dominance:</strong> Right dominant system.</p>
+      <p><strong>Left Main Stem (LMS):</strong> Left main stem is normal with no significant disease.</p>
+      <p><strong>Left Anterior Descending Artery (LAD):</strong> Critical 95% stenosis (subtotal occlusion) in the proximal LAD with thrombus burden. TIMI-1 flow noted. The mid LAD fills sluggishly via collaterals from the RCA. Distal LAD shows 40% stenosis with TIMI-2 flow distally.</p>
+      <p><strong>Left Circumflex Artery (LCx):</strong> The LCx is a non-dominant vessel. Proximal LCx shows 20% stenosis. No significant disease in mid or distal circumflex. OM1 is patent.</p>
+      <p><strong>Right Coronary Artery (RCA):</strong> Dominant RCA. The proximal RCA shows 30% stenosis. Mid and distal RCA are patent with TIMI-3 flow. The posterior descending artery is normal. Right-to-left collaterals noted supplying mid LAD territory.</p>
+    </div>
+
+    <div class="section-head">Findings Summary Table</div>
+    <table class="findings-table">
+      <tr><th>Vessel</th><th>Segment</th><th>Stenosis</th><th>Severity</th><th>Notes</th></tr>
+      <tr><td>LAD</td><td>Proximal</td><td>95%</td><td class="sev-total">SUBTOTAL OCCLUSION</td><td>Thrombus, TIMI-1 flow — CULPRIT</td></tr>
+      <tr><td>LAD</td><td>Distal</td><td>40%</td><td class="sev-mild">MILD</td><td>Via collaterals, TIMI-2</td></tr>
+      <tr><td>LCx</td><td>Proximal</td><td>20%</td><td class="sev-mild">MILD</td><td>Non-obstructive</td></tr>
+      <tr><td>RCA</td><td>Proximal</td><td>30%</td><td class="sev-mild">MILD</td><td>Non-obstructive</td></tr>
+      <tr><td>RCA</td><td>Mid/Distal</td><td>0%</td><td class="sev-normal">NORMAL</td><td>Collateral donor to LAD</td></tr>
+    </table>
+
+    <div class="impression-box">
+      <strong>Impression</strong>
+      Critical proximal LAD disease with subtotal occlusion (95% stenosis) and thrombus burden — culprit lesion for acute anterior STEMI. Single vessel disease. Left ventricular function severely impaired (EF ~30% on ventriculography) with anterior wall akinesia.
+    </div>
+    <div class="recommendation-box">
+      <strong>Recommendation</strong>
+      Urgent primary PCI to the proximal LAD performed — drug-eluting stent (3.5 x 28mm) deployed with good angiographic result (TIMI-3 flow, residual stenosis less than 10%). Aspiration thrombectomy performed prior to stenting. Dual antiplatelet therapy (aspirin + ticagrelor) for 12 months. Cardiac rehabilitation referral.
+    </div>
+
+    <div class="signature-row">
+      <div class="sig-block"><div class="sig-line"></div>Dr. V. Kumar, DM Cardiology<br/>Interventional Cardiologist</div>
+      <div class="sig-block"><div class="sig-line"></div>Dr. T. Singh, MD Emergency<br/>Referring Physician</div>
+      <div class="sig-block" style="font-size:10px;color:#1a1a6e;border:2px solid #1a1a6e;border-radius:50%;width:70px;height:70px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:bold;margin:0 auto;">NHH<br/>CARDIAC<br/>UNIT</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     REPORT 4 — Left Main + Multivessel Disease
+═══════════════════════════════════════════════════ -->
+<div class="report">
+  <div class="watermark">SAMPLE</div>
+  <div class="content">
+    <div class="hospital-header">
+      <div>
+        <div class="hospital-name">&#9829; Fortis Cardiac Sciences</div>
+        <div class="hospital-dept">Advanced Cardiac Catheterisation &amp; Imaging</div>
+        <div class="hospital-addr">22 Bypass Road, Metro City &nbsp;|&nbsp; Tel: +91-22-9876-5432</div>
+      </div>
+      <div class="report-meta">
+        <div class="ref">REF: FCS/ANGIO/2026/0504</div>
+        <div>Date: 05 May 2026</div>
+        <div>Operator: Dr. N. Iyer, DM Cardiology, FSCAI</div>
+        <div>Referring: Dr. M. Rao, MD Cardiology</div>
+      </div>
+    </div>
+
+    <div class="report-title">Diagnostic Coronary Angiography Report</div>
+
+    <div class="patient-grid">
+      <div class="patient-field"><label>Patient Name</label><span>Maria Garcia</span></div>
+      <div class="patient-field"><label>Patient ID</label><span>PT-2026-004</span></div>
+      <div class="patient-field"><label>Age / Sex</label><span>63 Years / Female</span></div>
+      <div class="patient-field"><label>Date of Procedure</label><span>05/05/2026</span></div>
+      <div class="patient-field"><label>Indication</label><span>Stable angina, high-risk stress test</span></div>
+      <div class="patient-field"><label>Access</label><span>Right Femoral, 7Fr</span></div>
+    </div>
+
+    <div class="badge-row">
+      <span class="badge badge-severe">Left Main Disease</span>
+      <span class="badge badge-severe">Multivessel CAD</span>
+      <span class="badge badge-severe">CABG Preferred</span>
+    </div>
+
+    <div class="section-head">Coronary Angiography Findings</div>
+    <div class="narrative">
+      <p><strong>Dominance:</strong> Right dominant system.</p>
+      <p><strong>Left Main Stem (LMS / LMCA):</strong> The LMCA shows 55% stenosis at the ostium, which is considered haemodynamically significant. FFR assessment performed: FFR = 0.76 (positive — revascularisation indicated). Shaft and distal bifurcation are relatively preserved.</p>
+      <p><strong>Left Anterior Descending Artery (LAD):</strong> 80% stenosis in the proximal LAD with heavy calcification. The first diagonal branch (D1) shows 50% narrowing. Mid LAD demonstrates 45% stenosis. Distal LAD is patent.</p>
+      <p><strong>Left Circumflex Artery (LCx):</strong> The proximal LCx shows 70% stenosis. The second obtuse marginal (OM2) has 65% narrowing. Distal LCx is patent.</p>
+      <p><strong>Right Coronary Artery (RCA):</strong> The mid RCA shows 40% stenosis. Distal RCA and PDA are normal with TIMI-3 flow.</p>
+    </div>
+
+    <div class="section-head">Findings Summary Table</div>
+    <table class="findings-table">
+      <tr><th>Vessel</th><th>Segment</th><th>Stenosis</th><th>Severity</th><th>Notes</th></tr>
+      <tr><td>LMCA</td><td>Ostial</td><td>55%</td><td class="sev-moderate">SIGNIFICANT</td><td>FFR 0.76 — positive</td></tr>
+      <tr><td>LAD</td><td>Proximal</td><td>80%</td><td class="sev-severe">SEVERE</td><td>Calcified, eccentric</td></tr>
+      <tr><td>D1 (Diagonal)</td><td>Proximal</td><td>50%</td><td class="sev-moderate">MODERATE</td><td>FFR recommended</td></tr>
+      <tr><td>LAD</td><td>Mid</td><td>45%</td><td class="sev-mild">MILD-MOD</td><td>Non-obstructive</td></tr>
+      <tr><td>LCx</td><td>Proximal</td><td>70%</td><td class="sev-severe">SEVERE</td><td>Smooth lesion</td></tr>
+      <tr><td>OM2</td><td>Proximal</td><td>65%</td><td class="sev-moderate">MODERATE</td><td>Borderline significant</td></tr>
+      <tr><td>RCA</td><td>Mid</td><td>40%</td><td class="sev-mild">MILD</td><td>Non-obstructive</td></tr>
+    </table>
+
+    <div class="impression-box">
+      <strong>Impression</strong>
+      Significant left main coronary artery disease (55% ostial stenosis, FFR positive) with multivessel involvement — proximal LAD 80%, proximal LCx 70%, and OM2 65% stenosis. SYNTAX score calculated at 32 (intermediate-high complexity). Left ventricular function mildly impaired (EF ~50%).
+    </div>
+    <div class="recommendation-box">
+      <strong>Recommendation</strong>
+      CABG is the preferred revascularisation strategy given left main disease with multivessel involvement and intermediate-high SYNTAX score. Heart team discussion arranged. LIMA to LAD, SVG to LCx/OM2, SVG to RCA planned. Continue medical therapy pending surgery.
+    </div>
+
+    <div class="signature-row">
+      <div class="sig-block"><div class="sig-line"></div>Dr. N. Iyer, DM Cardiology, FSCAI<br/>Senior Interventional Cardiologist</div>
+      <div class="sig-block"><div class="sig-line"></div>Dr. M. Rao, MD Cardiology<br/>Referring Cardiologist</div>
+      <div class="sig-block" style="font-size:10px;color:#1a1a6e;border:2px solid #1a1a6e;border-radius:50%;width:70px;height:70px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:bold;margin:0 auto;">FORTIS<br/>CARDIAC<br/>SCI.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     REPORT 5 — Mixed Severity + Distal RCA CTO
+═══════════════════════════════════════════════════ -->
+<div class="report">
+  <div class="watermark">SAMPLE</div>
+  <div class="content">
+    <div class="hospital-header">
+      <div>
+        <div class="hospital-name">&#9829; Medanta Heart Institute</div>
+        <div class="hospital-dept">Cardiac Catheterisation &amp; Electrophysiology Lab</div>
+        <div class="hospital-addr">88 Cardiology Boulevard, New Town &nbsp;|&nbsp; Tel: +91-124-4141-414</div>
+      </div>
+      <div class="report-meta">
+        <div class="ref">REF: MHI/FOLLOWUP/2026/0505</div>
+        <div>Date: 05 May 2026</div>
+        <div>Operator: Dr. K. Reddy, DM Cardiology</div>
+        <div>Referring: Dr. L. Verma, MD Internal Medicine</div>
+      </div>
+    </div>
+
+    <div class="report-title">Follow-up Coronary Angiography Report</div>
+
+    <div class="patient-grid">
+      <div class="patient-field"><label>Patient Name</label><span>David Chen</span></div>
+      <div class="patient-field"><label>Patient ID</label><span>PT-2026-005</span></div>
+      <div class="patient-field"><label>Age / Sex</label><span>67 Years / Male</span></div>
+      <div class="patient-field"><label>Date of Procedure</label><span>05/05/2026</span></div>
+      <div class="patient-field"><label>Indication</label><span>Known CAD, progressive angina, prior PCI 2022</span></div>
+      <div class="patient-field"><label>Access</label><span>Right Radial, 6Fr</span></div>
+    </div>
+
+    <div class="badge-row">
+      <span class="badge badge-severe">Multivessel CAD</span>
+      <span class="badge badge-cto">CTO — Distal RCA</span>
+      <span class="badge badge-moderate">Moderate-Severe Mixed</span>
+    </div>
+
+    <div class="section-head">Coronary Angiography Findings</div>
+    <div class="narrative">
+      <p><strong>Dominance:</strong> Right dominant system. Prior PCI to mid LAD (2022) — stent patent with no in-stent restenosis.</p>
+      <p><strong>Left Main Stem (LMS):</strong> Left main stem is angiographically normal with no significant disease.</p>
+      <p><strong>Left Anterior Descending Artery (LAD):</strong> The proximal LAD shows 65% stenosis, borderline significant — FFR recommended. Mid LAD stent from 2022 is patent with no restenosis. Mid LAD demonstrates 55% narrowing proximal to the stent. The distal LAD is patent with TIMI-3 flow.</p>
+      <p><strong>Left Circumflex Artery (LCx):</strong> Proximal LCx shows 72% stenosis. The mid circumflex artery has 60% narrowing. Distal LCx is normal with TIMI-3 flow.</p>
+      <p><strong>Right Coronary Artery (RCA):</strong> The proximal RCA demonstrates 78% stenosis with significant plaque burden. The mid RCA shows 85% stenosis — most severe lesion in this vessel. The distal RCA has total occlusion — CTO confirmed on multiple projections (LAO 40, LAO 20-Cranial 20, RAO 30). No antegrade flow beyond the occlusion. Posterior descending artery fills via left-to-right collaterals from LCx.</p>
+    </div>
+
+    <div class="section-head">Findings Summary Table</div>
+    <table class="findings-table">
+      <tr><th>Vessel</th><th>Segment</th><th>Stenosis</th><th>Severity</th><th>Notes</th></tr>
+      <tr><td>LAD</td><td>Proximal</td><td>65%</td><td class="sev-moderate">MODERATE</td><td>Borderline — FFR recommended</td></tr>
+      <tr><td>LAD</td><td>Mid (stent)</td><td>0%</td><td class="sev-normal">PATENT</td><td>Prior PCI 2022 — no ISR</td></tr>
+      <tr><td>LAD</td><td>Mid (proximal to stent)</td><td>55%</td><td class="sev-moderate">MODERATE</td><td>New lesion</td></tr>
+      <tr><td>LCx</td><td>Proximal</td><td>72%</td><td class="sev-severe">SEVERE</td><td>Smooth, concentric</td></tr>
+      <tr><td>LCx</td><td>Mid</td><td>60%</td><td class="sev-moderate">MODERATE</td><td>Borderline significant</td></tr>
+      <tr><td>RCA</td><td>Proximal</td><td>78%</td><td class="sev-severe">SEVERE</td><td>Heavy plaque burden</td></tr>
+      <tr><td>RCA</td><td>Mid</td><td>85%</td><td class="sev-severe">SEVERE</td><td>Critical lesion</td></tr>
+      <tr><td>RCA</td><td>Distal</td><td>100%</td><td class="sev-total">TOTAL OCCLUSION</td><td>CTO — collateral fill from LCx</td></tr>
+    </table>
+
+    <div class="impression-box">
+      <strong>Impression</strong>
+      Moderate to severe multivessel coronary artery disease with progression since 2022. Distal RCA chronic total occlusion (CTO) confirmed. Proximal LCx 72% and mid RCA 85% stenosis are the most haemodynamically significant new lesions. Prior mid LAD stent remains patent. SYNTAX score ~28 (intermediate complexity).
+    </div>
+    <div class="recommendation-box">
+      <strong>Recommendation</strong>
+      Hybrid revascularisation strategy discussed at heart team meeting: PCI to proximal LCx and mid RCA (staged), with consideration of CTO-PCI to distal RCA if technically feasible. LIMA-LAD CABG may be considered if PCI fails. Optimise medical therapy: dual antiplatelet, high-intensity statin, ACE inhibitor, beta-blocker. Cardiac rehabilitation referral.
+    </div>
+
+    <div class="signature-row">
+      <div class="sig-block"><div class="sig-line"></div>Dr. K. Reddy, DM Cardiology<br/>Interventional Cardiologist</div>
+      <div class="sig-block"><div class="sig-line"></div>Dr. L. Verma, MD Internal Medicine<br/>Referring Physician</div>
+      <div class="sig-block" style="font-size:10px;color:#1a1a6e;border:2px solid #1a1a6e;border-radius:50%;width:70px;height:70px;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:bold;margin:0 auto;">MEDANTA<br/>HEART<br/>INST.</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

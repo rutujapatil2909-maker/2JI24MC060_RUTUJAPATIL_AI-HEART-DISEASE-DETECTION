@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Human Heart — Anatomical Visualization</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Canvas container -->
+  <div id="canvas-container"></div>
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <span id="app-title">&#10084; 3D Human Heart — Anatomical Visualization</span>
+    <div id="topbar-actions">
+      <button class="btn" id="btn-reset-camera">Reset View</button>
+      <button class="btn" id="btn-export-obj">Export OBJ</button>
+      <button class="btn" id="btn-export-stl">Export STL</button>
+      <button class="btn" id="btn-screenshot">Screenshot</button>
+    </div>
+  </div>
+
+  <!-- Left panel: visibility toggles -->
+  <div id="left-panel">
+    <div class="panel-title">Visibility</div>
+
+    <div class="toggle-group">
+      <div class="toggle-label">Chambers</div>
+      <label class="toggle"><input type="checkbox" id="vis-chambers" checked /><span class="slider-toggle"></span></label>
+    </div>
+    <div class="toggle-group">
+      <div class="toggle-label">Vessels</div>
+      <label class="toggle"><input type="checkbox" id="vis-vessels" checked /><span class="slider-toggle"></span></label>
+    </div>
+    <div class="toggle-group">
+      <div class="toggle-label">Valves</div>
+      <label class="toggle"><input type="checkbox" id="vis-valves" checked /><span class="slider-toggle"></span></label>
+    </div>
+    <div class="toggle-group">
+      <div class="toggle-label">Coronary</div>
+      <label class="toggle"><input type="checkbox" id="vis-coronary" checked /><span class="slider-toggle"></span></label>
+    </div>
+
+    <div class="panel-title" style="margin-top:18px;">Transparency</div>
+    <div class="slider-row">
+      <span class="slider-label">Global</span>
+      <input type="range" id="opacity-global" min="0.05" max="1" step="0.01" value="0.55" />
+      <span class="slider-val" id="opacity-global-val">0.55</span>
+    </div>
+    <div class="slider-row">
+      <span class="slider-label">Chambers</span>
+      <input type="range" id="opacity-chambers" min="0.05" max="1" step="0.01" value="0.55" />
+      <span class="slider-val" id="opacity-chambers-val">0.55</span>
+    </div>
+    <div class="slider-row">
+      <span class="slider-label">Vessels</span>
+      <input type="range" id="opacity-vessels" min="0.05" max="1" step="0.01" value="0.65" />
+      <span class="slider-val" id="opacity-vessels-val">0.65</span>
+    </div>
+    <div class="slider-row">
+      <span class="slider-label">Valves</span>
+      <input type="range" id="opacity-valves" min="0.05" max="1" step="0.01" value="0.80" />
+      <span class="slider-val" id="opacity-valves-val">0.80</span>
+    </div>
+
+    <div class="panel-title" style="margin-top:18px;">Modes</div>
+    <div class="toggle-group">
+      <div class="toggle-label">Blood Flow</div>
+      <label class="toggle"><input type="checkbox" id="toggle-flow" /><span class="slider-toggle"></span></label>
+    </div>
+    <div class="toggle-group">
+      <div class="toggle-label">Cross-Section</div>
+      <label class="toggle"><input type="checkbox" id="toggle-slice" /><span class="slider-toggle"></span></label>
+    </div>
+    <div class="slider-row" id="slice-row" style="display:none;">
+      <span class="slider-label">Slice Y</span>
+      <input type="range" id="slice-y" min="-1.5" max="1.5" step="0.01" value="0" />
+      <span class="slider-val" id="slice-y-val">0.00</span>
+    </div>
+    <div class="toggle-group">
+      <div class="toggle-label">Blockage Sim</div>
+      <label class="toggle"><input type="checkbox" id="toggle-blockage" /><span class="slider-toggle"></span></label>
+    </div>
+  </div>
+
+  <!-- Right panel: info -->
+  <div id="right-panel">
+    <div class="panel-title">Structure Info</div>
+    <div id="info-name">Click a structure</div>
+    <div id="info-desc"></div>
+    <div id="info-color-swatch"></div>
+  </div>
+
+  <!-- Loading overlay -->
+  <div id="loading">
+    <div id="loading-inner">
+      <div id="loading-heart">&#10084;</div>
+      <div id="loading-text">Building anatomical model…</div>
+      <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- Three.js from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- OrbitControls -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>

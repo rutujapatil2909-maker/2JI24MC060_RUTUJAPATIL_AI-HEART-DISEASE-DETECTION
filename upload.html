@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Upload Video Report — CardioViz 3D</title>
+  <style>
+/* ── Dark holographic theme matching front page ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#050d1a; --navy2:#0a1628; --navy3:#0d1f35;
+  --cyan:#00d4ff; --pink:#ff2d78; --purple:#7b2fff;
+  --text:#e0f0ff; --muted:rgba(180,210,255,0.55);
+}
+body{background:var(--navy);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,212,255,0.012) 2px,rgba(0,212,255,0.012) 4px);pointer-events:none;z-index:9999;}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;height:64px;background:rgba(5,13,26,0.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,212,255,0.15);display:flex;align-items:center;justify-content:space-between;padding:0 48px;z-index:500;}
+.nav-logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:800;color:var(--cyan);text-shadow:0 0 20px rgba(0,212,255,0.5);cursor:pointer;}
+.nav-logo span{font-size:22px;animation:beat 1.4s ease-in-out infinite;display:inline-block;}
+@keyframes beat{0%,100%{transform:scale(1)}14%{transform:scale(1.25)}28%{transform:scale(1)}42%{transform:scale(1.15)}70%{transform:scale(1)}}
+.nav-steps{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;}
+.ns{padding:5px 14px;border-radius:50px;letter-spacing:0.3px;}
+.ns.done{background:rgba(0,212,255,0.12);color:var(--cyan);border:1px solid rgba(0,212,255,0.3);}
+.ns.active{background:linear-gradient(135deg,var(--cyan),var(--purple));color:#000;box-shadow:0 0 16px rgba(0,212,255,0.4);}
+.ns.pending{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.07);}
+.ns-sep{color:rgba(255,255,255,0.2);font-size:14px;}
+
+/* MAIN */
+.main{padding:90px 24px 60px;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;}
+.upload-wrap{width:100%;max-width:640px;}
+
+/* PATIENT BADGE */
+.patient-badge{background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.25);border-radius:12px;padding:12px 18px;font-size:13px;color:var(--muted);margin-bottom:24px;display:flex;align-items:center;gap:10px;}
+.badge-icon{font-size:20px;}
+.badge-name{font-weight:800;color:#fff;font-size:14px;}
+.badge-detail{font-size:12px;color:var(--muted);}
+
+/* CARD */
+.upload-card{background:rgba(10,22,40,0.80);border:1px solid rgba(0,212,255,0.18);border-radius:20px;padding:32px;backdrop-filter:blur(24px);box-shadow:0 0 60px rgba(0,212,255,0.06),0 24px 64px rgba(0,0,0,0.5);position:relative;overflow:hidden;}
+.upload-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),var(--pink),transparent);}
+
+.card-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:28px;}
+.card-icon-wrap{width:52px;height:52px;border-radius:14px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.25);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.card-title{font-size:20px;font-weight:800;color:#fff;margin-bottom:4px;}
+.card-sub{font-size:12px;color:var(--muted);}
+
+/* DROP ZONE */
+.drop-zone{border:2px dashed rgba(0,212,255,0.3);border-radius:16px;padding:48px 24px;text-align:center;cursor:pointer;transition:border-color 0.2s,background 0.2s;margin-bottom:16px;background:rgba(0,212,255,0.03);position:relative;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--cyan);background:rgba(0,212,255,0.07);box-shadow:0 0 24px rgba(0,212,255,0.1);}
+.drop-icon{font-size:52px;margin-bottom:14px;filter:drop-shadow(0 0 12px rgba(0,212,255,0.4));}
+.drop-title{font-size:17px;font-weight:800;color:#fff;margin-bottom:6px;}
+.drop-sub{font-size:13px;color:var(--cyan);font-weight:700;margin-bottom:6px;}
+.drop-hint{font-size:11px;color:var(--muted);}
+input[type=file]{display:none;}
+
+/* FILE INFO */
+.file-info{display:flex;align-items:center;gap:14px;background:rgba(0,212,255,0.07);border:1px solid rgba(0,212,255,0.25);border-radius:12px;padding:14px 18px;margin-bottom:16px;}
+.file-icon{font-size:28px;}
+.file-details{flex:1;}
+.file-name{font-weight:800;color:#fff;font-size:14px;}
+.file-size{font-size:11px;color:var(--muted);margin-top:2px;}
+.btn-clear{background:rgba(255,45,120,0.12);border:1px solid rgba(255,45,120,0.3);color:var(--pink);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700;transition:background 0.2s;}
+.btn-clear:hover{background:rgba(255,45,120,0.25);}
+
+/* PROGRESS */
+.upload-progress{margin-bottom:16px;}
+.prog-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:700;}
+.prog-track{height:8px;background:rgba(0,212,255,0.12);border-radius:8px;overflow:hidden;margin-bottom:6px;}
+.prog-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--purple));border-radius:8px;transition:width 0.3s;box-shadow:0 0 10px rgba(0,212,255,0.5);}
+.prog-stage{font-size:11px;color:var(--cyan);font-weight:700;}
+
+/* ANALYSIS PREVIEW */
+.analysis-preview{margin-bottom:16px;}
+.preview-title{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+.preview-img{width:100%;border-radius:12px;border:1px solid rgba(0,212,255,0.2);}
+.findings-summary{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
+.finding-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:9px 14px;border-radius:10px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.1);color:var(--text);}
+.finding-item.normal{color:#00ff88;background:rgba(0,255,136,0.08);border-color:rgba(0,255,136,0.2);}
+.finding-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.finding-sev{margin-left:auto;font-size:10px;font-weight:800;padding:2px 8px;border-radius:6px;}
+.sev-mild{background:rgba(255,217,102,0.2);color:#ffd966;}
+.sev-moderate{background:rgba(255,160,122,0.2);color:#ffa07a;}
+.sev-severe{background:rgba(255,45,120,0.2);color:var(--pink);}
+
+/* ALERT */
+.alert-error{background:rgba(255,45,120,0.1);border:1px solid rgba(255,45,120,0.3);color:var(--pink);padding:12px 16px;border-radius:12px;font-size:13px;margin-top:10px;}
+
+/* ACTIONS */
+.form-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:20px;flex-wrap:wrap;}
+.btn-back{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:var(--muted);padding:11px 22px;border-radius:50px;font-size:13px;font-weight:700;cursor:pointer;transition:background 0.2s,color 0.2s;}
+.btn-back:hover{background:rgba(255,255,255,0.1);color:#fff;}
+.btn-analyze{background:linear-gradient(135deg,var(--cyan),#0099cc);color:#000;border:none;padding:12px 28px;border-radius:50px;font-size:14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px;box-shadow:0 0 24px rgba(0,212,255,0.4);transition:transform 0.15s,box-shadow 0.15s;letter-spacing:0.3px;}
+.btn-analyze:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 36px rgba(0,212,255,0.6);}
+.btn-analyze:disabled{opacity:0.35;cursor:not-allowed;}
+.btn-dashboard{background:linear-gradient(135deg,var(--pink),var(--purple));color:#fff;border:none;padding:12px 28px;border-radius:50px;font-size:14px;font-weight:800;cursor:pointer;display:none;align-items:center;gap:8px;box-shadow:0 0 24px rgba(255,45,120,0.4);transition:transform 0.15s,box-shadow 0.15s;}
+.btn-dashboard:hover{transform:translateY(-2px);box-shadow:0 0 36px rgba(255,45,120,0.6);}
+.btn-dashboard.show{display:inline-flex;}
+
+/* TAB BAR */
+.tab-bar{display:flex;gap:4px;margin-bottom:24px;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.15);border-radius:12px;padding:4px;}
+.tab-btn{flex:1;padding:9px 16px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:background 0.2s,color 0.2s,box-shadow 0.2s;background:transparent;color:var(--muted);}
+.tab-btn.active{background:linear-gradient(135deg,var(--cyan),#0099cc);color:#000;box-shadow:0 0 16px rgba(0,212,255,0.35);}
+.tab-btn:not(.active):hover{background:rgba(0,212,255,0.1);color:var(--text);}
+
+/* REPORT SECTION */
+.report-section{display:none;}
+.report-section.visible{display:block;}
+.report-textarea{width:100%;min-height:180px;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.25);border-radius:12px;color:var(--text);font-family:inherit;font-size:13px;padding:14px 16px;resize:vertical;outline:none;transition:border-color 0.2s;}
+.report-textarea:focus{border-color:var(--cyan);box-shadow:0 0 12px rgba(0,212,255,0.15);}
+.report-textarea::placeholder{color:var(--muted);}
+.report-error{background:rgba(255,45,120,0.1);border:1px solid rgba(255,45,120,0.3);color:var(--pink);padding:12px 16px;border-radius:12px;font-size:13px;margin-top:10px;display:none;}
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo" onclick="window.location.href='patient.html'">
+    <span>&#10084;</span> CardioViz 3D
+  </div>
+  <div class="nav-steps">
+    <span class="ns done">&#10003; Patient</span>
+    <span class="ns-sep">›</span>
+    <span class="ns active">&#9654; Upload</span>
+    <span class="ns-sep">›</span>
+    <span class="ns pending" onclick="if(window.SID) window.location.href='dashboard.html?sid='+window.SID" style="cursor:pointer;">3D View</span>
+    <span class="ns-sep">›</span>
+    <span class="ns pending" id="nav-report" onclick="goToReport()" style="cursor:pointer;">Report</span>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="upload-wrap">
+
+    <!-- Patient badge -->
+    <div class="patient-badge" id="patient-badge" style="display:none;">
+      <span class="badge-icon">&#128100;</span>
+      <div>
+        <div class="badge-name" id="badge-name"></div>
+        <div class="badge-detail" id="badge-detail"></div>
+      </div>
+    </div>
+
+    <div class="upload-card">
+      <div class="card-header">
+        <div class="card-icon-wrap" id="card-icon">&#127909;</div>
+        <div>
+          <div class="card-title" id="card-title">Upload Medical Video Report</div>
+          <div class="card-sub" id="card-sub">Angiography, echocardiogram, or cath-lab MP4 recording</div>
+        </div>
+      </div>
+
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" id="tab-video" onclick="switchTab('video')">&#127909; Video Upload</button>
+        <button class="tab-btn" id="tab-report" onclick="switchTab('report')">&#128196; Text Report</button>
+      </div>
+
+      <!-- Video section -->
+      <div id="video-section">
+
+      <!-- Drop zone -->
+      <div id="drop-zone" class="drop-zone">
+        <div class="drop-icon">&#128190;</div>
+        <div class="drop-title">Drag &amp; drop your video here</div>
+        <div class="drop-sub">or click to browse files</div>
+        <div class="drop-hint">Supported: MP4, AVI, MOV, MKV &nbsp;·&nbsp; Max 500 MB</div>
+        <input type="file" id="file-input" accept=".mp4,.avi,.mov,.mkv"/>
+      </div>
+
+      <!-- File info (shown after selection) -->
+      <div id="file-info" class="file-info" style="display:none;">
+        <span class="file-icon">&#127909;</span>
+        <div class="file-details">
+          <div id="file-name" class="file-name"></div>
+          <div id="file-size" class="file-size"></div>
+        </div>
+        <button id="btn-clear" class="btn-clear">&#10005; Remove</button>
+      </div>
+
+      <!-- Upload progress -->
+      <div id="upload-progress" class="upload-progress" style="display:none;">
+        <div class="prog-label">
+          <span id="progress-text">Uploading…</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="prog-track"><div id="progress-bar" class="prog-bar"></div></div>
+        <div id="progress-stage" class="prog-stage"></div>
+      </div>
+
+      <!-- Analysis preview -->
+      <div id="analysis-preview" class="analysis-preview" style="display:none;">
+        <div class="preview-title">&#128247; Analysis Preview</div>
+        <img id="preview-img" class="preview-img" alt="Analysis frame"/>
+        <div id="findings-summary" class="findings-summary"></div>
+      </div>
+
+      <!-- Error -->
+      <div id="upload-error" class="alert-error" style="display:none;"></div>
+
+      <!-- Actions -->
+      <div class="form-actions">
+        <button class="btn-back" onclick="window.location.href='patient.html'">&#8592; Back</button>
+        <button id="btn-analyze" class="btn-analyze" disabled>
+          &#128269; Analyze Video
+        </button>
+        <button id="btn-dashboard" class="btn-dashboard">
+          &#10084; View 3D Heart
+        </button>
+      </div>
+
+      </div><!-- end #video-section -->
+
+      <!-- Report section -->
+      <div id="report-section" class="report-section">
+        <textarea id="report-text" class="report-textarea"
+          placeholder="Paste your angiography or radiology report here…&#10;&#10;Example: 70% stenosis in the proximal LAD. Mild disease in the mid RCA."></textarea>
+        <div id="report-error" class="report-error"></div>
+        <div id="report-findings-summary" class="findings-summary" style="margin-top:12px;"></div>
+        <div class="form-actions">
+          <button class="btn-back" onclick="window.location.href='patient.html'">&#8592; Back</button>
+          <button id="btn-report" class="btn-analyze">
+            &#128196; Analyze Report
+          </button>
+          <button id="btn-dashboard-report" class="btn-dashboard">
+            &#10084; View 3D Heart
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  function goToReport() {
+    if (SID) window.location.href = 'diagnosis.html?sid=' + SID;
+    else alert('Please complete analysis first.');
+  }
+
+  const API    = 'http://localhost:5000';
+  const params = new URLSearchParams(location.search);
+  const SID    = params.get('sid') || sessionStorage.getItem('session_id');
+
+  // If no session, go back to patient form
+  if (!SID) { window.location.href = 'patient.html'; }
+
+  // Show patient badge
+  try {
+    const pt = JSON.parse(sessionStorage.getItem('patient') || '{}');
+    if (pt.name) {
+      document.getElementById('badge-name').textContent   = pt.name;
+      document.getElementById('badge-detail').textContent = 'ID: ' + pt.patient_id + '  ·  Age: ' + pt.age + '  ·  ' + pt.gender;
+      document.getElementById('patient-badge').style.display = 'flex';
+    }
+  } catch(e) {}
+
+  let selectedFile = null;
+
+  // Drop zone
+  const dropZone  = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+
+  dropZone.addEventListener('click', () => fileInput.click());
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) setFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) setFile(fileInput.files[0]); });
+
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    selectedFile = null;
+    document.getElementById('file-info').style.display    = 'none';
+    document.getElementById('btn-analyze').disabled       = true;
+    document.getElementById('upload-error').style.display = 'none';
+    fileInput.value = '';
+  });
+
+  function setFile(f) {
+    selectedFile = f;
+    document.getElementById('file-name').textContent      = f.name;
+    document.getElementById('file-size').textContent      = fmtSize(f.size);
+    document.getElementById('file-info').style.display    = 'flex';
+    document.getElementById('btn-analyze').disabled       = false;
+    document.getElementById('upload-error').style.display = 'none';
+  }
+
+  function fmtSize(b) {
+    return b > 1048576 ? (b/1048576).toFixed(1)+' MB' : (b/1024).toFixed(0)+' KB';
+  }
+
+  // Analyze
+  document.getElementById('btn-analyze').addEventListener('click', async () => {
+    if (!selectedFile) return;
+    const btnA = document.getElementById('btn-analyze');
+    btnA.disabled = true;
+    btnA.textContent = '⏳ Analyzing…';
+    document.getElementById('upload-error').style.display    = 'none';
+    document.getElementById('upload-progress').style.display = 'block';
+    document.getElementById('analysis-preview').style.display= 'none';
+
+    const formData = new FormData();
+    formData.append('video', selectedFile);
+
+    try {
+      const result = await uploadWithProgress(formData);
+
+      if (result.preview_frame) {
+        document.getElementById('preview-img').src = 'data:image/jpeg;base64,' + result.preview_frame;
+        document.getElementById('analysis-preview').style.display = 'block';
+      }
+
+      const findings = result.findings || [];
+      const sumEl    = document.getElementById('findings-summary');
+      if (findings.length === 0) {
+        sumEl.innerHTML = '<div class="finding-item normal">&#10003; No significant abnormalities detected</div>';
+      } else {
+        sumEl.innerHTML = findings.map(f =>
+          `<div class="finding-item">
+             <span class="finding-dot" style="background:${f.color}"></span>
+             <strong>${f.structure}</strong>
+             <span class="finding-sev sev-${f.severity}">${f.severity.toUpperCase()}</span>
+           </div>`
+        ).join('');
+      }
+
+      sessionStorage.setItem('session_id', SID);
+      sessionStorage.setItem('analysis',   JSON.stringify(result));
+
+      const btnD = document.getElementById('btn-dashboard');
+      btnD.classList.add('show');
+      btnD.onclick = () => { window.location.href = 'dashboard.html?sid=' + SID; };
+
+    } catch (err) {
+      document.getElementById('upload-error').style.display = 'block';
+      document.getElementById('upload-error').textContent   = '⚠ ' + err.message;
+      btnA.disabled    = false;
+      btnA.textContent = '🔍 Analyze Video';
+    }
+
+    document.getElementById('upload-progress').style.display = 'none';
+  });
+
+  function uploadWithProgress(formData) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const stages = ['Uploading video…','Extracting frames…','Enhancing contrast…','Detecting anomalies…','Mapping anatomy…','Generating report…'];
+      let si = 0;
+
+      xhr.upload.addEventListener('progress', e => {
+        if (e.lengthComputable) setProgress(Math.round(e.loaded/e.total*50), stages[0]);
+      });
+
+      xhr.addEventListener('readystatechange', () => {
+        if (xhr.readyState === 4) {
+          setProgress(100, 'Complete ✓');
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try { resolve(JSON.parse(xhr.responseText)); }
+            catch(e) { reject(new Error('Invalid server response')); }
+          } else {
+            try { const err=JSON.parse(xhr.responseText); reject(new Error(err.error||'Server error '+xhr.status)); }
+            catch { reject(new Error('Server error '+xhr.status)); }
+          }
+        } else if (xhr.readyState === 3) {
+          si = Math.min(si+1, stages.length-1);
+          setProgress(50+si*8, stages[si]);
+        }
+      });
+
+      xhr.open('POST', API+'/api/upload/'+SID);
+      xhr.send(formData);
+    });
+  }
+
+  function setProgress(pct, label) {
+    document.getElementById('progress-bar').style.width  = pct+'%';
+    document.getElementById('progress-pct').textContent  = pct+'%';
+    if (label) document.getElementById('progress-stage').textContent = label;
+  }
+
+  // ── Tab switching ──────────────────────────────────────────────
+  function switchTab(tab) {
+    const isVideo = tab === 'video';
+    document.getElementById('tab-video').classList.toggle('active', isVideo);
+    document.getElementById('tab-report').classList.toggle('active', !isVideo);
+    document.getElementById('video-section').style.display  = isVideo ? '' : 'none';
+    document.getElementById('report-section').classList.toggle('visible', !isVideo);
+    // Update card header
+    document.getElementById('card-icon').textContent  = isVideo ? '🎥' : '📄';
+    document.getElementById('card-title').textContent = isVideo
+      ? 'Upload Medical Video Report'
+      : 'Analyze Text Report';
+    document.getElementById('card-sub').textContent   = isVideo
+      ? 'Angiography, echocardiogram, or cath-lab MP4 recording'
+      : 'Paste a free-text angiography or radiology report';
+  }
+
+  // ── Analyze Report ─────────────────────────────────────────────
+  document.getElementById('btn-report').addEventListener('click', analyzeReport);
+
+  async function analyzeReport() {
+    const reportText = document.getElementById('report-text').value;
+    const errEl      = document.getElementById('report-error');
+    const btnR       = document.getElementById('btn-report');
+
+    // Reset error
+    errEl.style.display = 'none';
+    errEl.textContent   = '';
+
+    // Validate non-empty
+    if (!reportText.trim()) {
+      errEl.textContent   = '⚠ Please enter a report before analyzing.';
+      errEl.style.display = 'block';
+      return;
+    }
+
+    // Loading state
+    btnR.disabled     = true;
+    btnR.textContent  = '⏳ Analyzing…';
+
+    try {
+      const res = await fetch(API + '/api/report/' + SID, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ report_text: reportText }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Server error ' + res.status);
+      }
+
+      // Render findings summary chips
+      const findings = data.findings || [];
+      const sumEl    = document.getElementById('report-findings-summary');
+      if (findings.length === 0) {
+        sumEl.innerHTML = '<div class="finding-item normal">&#10003; ' +
+          (data.message || 'No significant coronary findings detected') + '</div>';
+      } else {
+        sumEl.innerHTML = findings.map(f =>
+          `<div class="finding-item">
+             <span class="finding-dot" style="background:${f.color}"></span>
+             <strong>${f.structure}</strong>
+             <span class="finding-sev sev-${f.severity}">${f.severity.toUpperCase()}</span>
+           </div>`
+        ).join('');
+      }
+
+      // Persist session data
+      sessionStorage.setItem('session_id', SID);
+      sessionStorage.setItem('analysis',   JSON.stringify(data));
+
+      // Show "View 3D Heart" button
+      const btnD = document.getElementById('btn-dashboard-report');
+      btnD.classList.add('show');
+      btnD.onclick = () => { window.location.href = 'dashboard.html?sid=' + SID; };
+
+    } catch (err) {
+      const msg = err.message === 'Failed to fetch'
+        ? 'Unable to reach server. Please check your connection.'
+        : err.message;
+      errEl.textContent   = '⚠ ' + msg;
+      errEl.style.display = 'block';
+    } finally {
+      btnR.disabled    = false;
+      btnR.textContent = '📄 Analyze Report';
+    }
+  }
+</script>
+</body>
+</html>

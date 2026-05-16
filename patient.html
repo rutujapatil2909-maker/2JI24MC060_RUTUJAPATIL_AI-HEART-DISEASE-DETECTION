@@ -1,0 +1,1142 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CardioViz 3D — Cardiac Diagnostic System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Space+Grotesk:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+/* ═══════════════════════════════════════════════════════
+   CARDIOVIZ 3D — DEEP SPACE MEDICAL UI  v2
+   Redesigned: violet/coral/emerald on near-black
+═══════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:     #03070f;
+  --bg2:    #060d1c;
+  --bg3:    #0a1428;
+  --navy:   #03070f;
+  --navy2:  #060d1c;
+  --navy3:  #0a1428;
+  --cyan:   #00d4ff;
+  --pink:   #ff2d78;
+  --purple: #7b2fff;
+  --violet: #8b5cf6;
+  --coral:  #f43f5e;
+  --emerald:#10b981;
+  --blue:   #3b82f6;
+  --glow-c: rgba(0,212,255,0.6);
+  --glow-p: rgba(255,45,120,0.6);
+  --glow-v: rgba(139,92,246,0.6);
+  --text:   #f0f4ff;
+  --muted:  rgba(180,200,240,0.5);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* ── Noise texture overlay ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.4;
+}
+
+/* ── Aurora background blobs ── */
+@keyframes aurora1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(80px,-60px) scale(1.15)} }
+@keyframes aurora2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-60px,80px) scale(1.2)} }
+@keyframes aurora3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,40px) scale(0.9)} }
+.aurora { position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+.aurora-blob { position:absolute; border-radius:50%; filter:blur(120px); }
+.aurora-blob.a1 { width:700px;height:500px;background:rgba(139,92,246,0.18);top:-100px;left:-150px;animation:aurora1 14s ease-in-out infinite; }
+.aurora-blob.a2 { width:600px;height:600px;background:rgba(244,63,94,0.12);top:20%;right:-200px;animation:aurora2 18s ease-in-out infinite; }
+.aurora-blob.a3 { width:500px;height:400px;background:rgba(59,130,246,0.14);bottom:-100px;left:30%;animation:aurora3 12s ease-in-out infinite; }
+
+/* ════════════════════════════════════
+   CANVAS LAYERS
+════════════════════════════════════ */
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ════════════════════════════════════
+   NAVIGATION — floating pill
+════════════════════════════════════ */
+.nav {
+  position: fixed;
+  top: 16px; left: 50%; transform: translateX(-50%);
+  width: calc(100% - 48px);
+  max-width: 1100px;
+  height: 60px;
+  background: rgba(6,13,28,0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(139,92,246,0.2);
+  border-radius: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  z-index: 1000;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  transition: background 0.3s;
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+.nav-logo svg { width: 26px; height: 26px; filter: drop-shadow(0 0 8px rgba(139,92,246,0.8)); }
+.nav-links { display: flex; gap: 4px; list-style: none; align-items: center; }
+.nav-links a {
+  text-decoration: none;
+  color: rgba(200,215,255,0.6);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 16px;
+  border-radius: 50px;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-links a:hover { color: #fff; background: rgba(139,92,246,0.12); }
+.nav-btn {
+  background: linear-gradient(135deg, var(--violet), var(--coral)) !important;
+  color: #fff !important;
+  border-radius: 50px !important;
+  padding: 8px 22px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 0 20px rgba(139,92,246,0.4);
+  transition: box-shadow 0.2s, transform 0.15s !important;
+}
+.nav-btn:hover { box-shadow: 0 0 32px rgba(139,92,246,0.7) !important; transform: translateY(-1px); background: rgba(0,0,0,0) !important; }
+
+/* ════════════════════════════════════
+   HERO SECTION
+════════════════════════════════════ */
+.hero {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 24px 60px;
+  overflow: hidden;
+}
+
+/* Perspective grid floor */
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 40%;
+  background:
+    linear-gradient(rgba(139,92,246,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139,92,246,0.07) 1px, transparent 1px);
+  background-size: 50px 50px;
+  transform: perspective(500px) rotateX(60deg);
+  transform-origin: bottom center;
+  pointer-events: none;
+  mask-image: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+}
+
+/* Ambient glow blobs */
+.glow-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+}
+.glow-blob.left  { width: 500px; height: 500px; background: rgba(139,92,246,0.2); top: 10%; left: -180px; }
+.glow-blob.right { width: 450px; height: 450px; background: rgba(244,63,94,0.15); top: 15%; right: -150px; }
+.glow-blob.top   { width: 700px; height: 350px; background: rgba(59,130,246,0.1); top: -50px; left: 50%; transform: translateX(-50%); }
+
+/* ── Hero badge ── */
+.hero-badge {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.35);
+  color: var(--emerald);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 18px;
+  border-radius: 50px;
+  margin-bottom: 24px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  animation: fadeDown 0.6s ease both;
+  box-shadow: 0 0 20px rgba(16,185,129,0.15);
+}
+.badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--emerald); animation: blink 1.2s infinite; box-shadow: 0 0 8px var(--emerald); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+/* ── Hero title ── */
+.hero-title {
+  position: relative;
+  z-index: 2;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 72px;
+  font-weight: 900;
+  text-align: center;
+  line-height: 0.95;
+  letter-spacing: -3px;
+  margin-bottom: 20px;
+  animation: fadeDown 0.6s 0.1s ease both;
+}
+.hero-title .t1 { display: block; color: #fff; }
+.hero-title .t2 {
+  display: block;
+  background: linear-gradient(135deg, var(--violet) 0%, var(--coral) 60%, #ff8c42 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 40px rgba(139,92,246,0.5));
+}
+@media (max-width: 900px) { .hero-title { font-size: 44px; letter-spacing: -2px; } }
+
+.hero-sub {
+  position: relative;
+  z-index: 2;
+  font-size: 16px;
+  color: rgba(180,200,240,0.65);
+  text-align: center;
+  max-width: 540px;
+  line-height: 1.75;
+  margin-bottom: 36px;
+  animation: fadeDown 0.6s 0.2s ease both;
+  font-weight: 400;
+}
+
+/* ── ECG line across hero ── */
+.ecg-strip {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.2;
+}
+
+/* ════════════════════════════════════
+   MAIN STAGE — 2 columns (no 3D heart)
+════════════════════════════════════ */
+.stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+/* ── HUD panels ── */
+.hud-panel {
+  flex: 0 0 270px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hud-card {
+  background: rgba(8,14,28,0.8);
+  border: 1px solid rgba(139,92,246,0.18);
+  border-radius: 18px;
+  padding: 16px 18px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.hud-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: linear-gradient(to bottom, var(--violet), transparent);
+  border-radius: 18px 0 0 18px;
+}
+.hud-card:hover {
+  border-color: rgba(139,92,246,0.45);
+  box-shadow: 0 8px 40px rgba(139,92,246,0.15), inset 0 1px 0 rgba(255,255,255,0.06);
+  transform: translateY(-4px);
+}
+.hud-card.pink-card {
+  border-color: rgba(244,63,94,0.2);
+}
+.hud-card.pink-card::before { background: linear-gradient(to bottom, var(--coral), transparent); }
+.hud-card.pink-card:hover { border-color: rgba(244,63,94,0.5); box-shadow: 0 8px 40px rgba(244,63,94,0.15); }
+
+.hud-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--violet);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hud-label.pink { color: var(--coral); }
+.hud-label-dot  { width: 5px; height: 5px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; animation: blink 1.5s infinite; }
+
+/* Bar chart */
+.bar-chart { display: flex; align-items: flex-end; gap: 5px; height: 60px; }
+.bar-col { flex: 1; border-radius: 4px 4px 0 0; transition: height 0.5s ease; position: relative; }
+.bar-col.cyan  { background: linear-gradient(to top, var(--violet), rgba(139,92,246,0.25)); box-shadow: 0 0 10px rgba(139,92,246,0.5); }
+.bar-col.pink  { background: linear-gradient(to top, var(--coral), rgba(244,63,94,0.25)); box-shadow: 0 0 10px rgba(244,63,94,0.5); }
+.bar-col.purp  { background: linear-gradient(to top, var(--blue), rgba(59,130,246,0.25)); box-shadow: 0 0 10px rgba(59,130,246,0.5); }
+
+/* Donut chart */
+.donut-wrap { display: flex; align-items: center; gap: 14px; }
+.donut-svg  { flex-shrink: 0; }
+.donut-legend { display: flex; flex-direction: column; gap: 6px; }
+.legend-item  { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); }
+.legend-dot   { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* Metric row */
+.metric-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.metric-val { font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 900; color: var(--violet); text-shadow: 0 0 20px var(--glow-v); line-height: 1; }
+.metric-val.pink { color: var(--coral); text-shadow: 0 0 20px rgba(244,63,94,0.6); }
+.metric-unit { font-size: 11px; color: var(--muted); font-weight: 500; }
+.metric-change { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+.metric-change.up   { background: rgba(16,185,129,0.15); color: var(--emerald); border: 1px solid rgba(16,185,129,0.25); }
+.metric-change.warn { background: rgba(244,63,94,0.15); color: var(--coral); border: 1px solid rgba(244,63,94,0.25); }
+
+/* Mini sparkline */
+.sparkline { width: 100%; height: 28px; }
+
+/* Status list */
+.status-list { display: flex; flex-direction: column; gap: 8px; }
+.status-item { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--muted); }
+.status-bar-wrap { flex: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; }
+.status-bar-fill { height: 100%; border-radius: 10px; transition: width 1s ease; }
+
+/* ════════════════════════════════════
+   FORM SECTION
+════════════════════════════════════ */
+.form-section {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 700px;
+  margin: 40px auto 0;
+  padding: 0 16px;
+}
+
+.form-hud {
+  background: rgba(8,14,28,0.85);
+  border: 1px solid rgba(139,92,246,0.22);
+  border-radius: 24px;
+  padding: 30px 34px;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  box-shadow: 0 0 80px rgba(139,92,246,0.08), 0 30px 80px rgba(0,0,0,0.5);
+  position: relative;
+  overflow: hidden;
+}
+.form-hud::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--violet), var(--coral), transparent);
+}
+.form-hud::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139,92,246,0.3), transparent);
+}
+
+.form-hud-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.form-hud-title span { color: var(--violet); font-size: 20px; }
+.form-hud-sub { font-size: 12px; color: rgba(180,200,240,0.5); margin-bottom: 22px; }
+
+/* Steps */
+.steps-row { display: flex; gap: 0; margin-bottom: 22px; align-items: center; }
+.step-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 50px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+  transition: all 0.2s;
+}
+.step-pill.active {
+  background: rgba(139,92,246,0.15);
+  color: var(--violet);
+  border: 1px solid rgba(139,92,246,0.4);
+  box-shadow: 0 0 16px rgba(139,92,246,0.2);
+}
+.step-pill.inactive {
+  background: transparent;
+  color: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.step-num {
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 900;
+}
+.step-pill.active .step-num  { background: var(--violet); color: #fff; box-shadow: 0 0 8px rgba(139,92,246,0.6); }
+.step-pill.inactive .step-num{ background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.2); }
+
+/* Form grid */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.fg-full { grid-column: 1 / -1; }
+.fg-half { grid-column: span 1; }
+
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-lbl {
+  font-size: 10px; font-weight: 700;
+  color: rgba(139,92,246,0.7);
+  text-transform: uppercase; letter-spacing: 1.2px;
+}
+.form-inp {
+  background: rgba(139,92,246,0.05);
+  border: 1px solid rgba(139,92,246,0.18);
+  border-radius: 12px;
+  color: #fff;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+.form-inp::placeholder { color: rgba(255,255,255,0.18); }
+.form-inp:focus {
+  border-color: var(--violet);
+  background: rgba(139,92,246,0.09);
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.15);
+}
+.form-inp.err { border-color: var(--coral); box-shadow: 0 0 0 3px rgba(244,63,94,0.15); }
+.form-inp option { background: #0a1428; }
+.form-err { font-size: 9px; color: var(--coral); min-height: 12px; }
+
+.submit-btn {
+  width: 100%;
+  background: linear-gradient(135deg, var(--violet) 0%, var(--coral) 100%);
+  color: #fff;
+  border: none;
+  padding: 15px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  box-shadow: 0 4px 30px rgba(139,92,246,0.45), 0 0 0 1px rgba(255,255,255,0.08) inset;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  position: relative; overflow: hidden;
+}
+.submit-btn::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+  opacity: 0; transition: opacity 0.2s;
+}
+.submit-btn:hover:not(:disabled)::after { opacity: 1; }
+.submit-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 40px rgba(139,92,246,0.6); }
+.submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.form-err-msg {
+  background: rgba(244,63,94,0.1);
+  border: 1px solid rgba(244,63,94,0.3);
+  color: var(--coral);
+  padding: 10px 14px; border-radius: 10px;
+  font-size: 12px; margin-top: 12px; display: none;
+}
+
+/* ════════════════════════════════════
+   ABOUT / DASHBOARD SECTION
+════════════════════════════════════ */
+.about-section {
+  position: relative;
+  z-index: 1;
+  padding: 120px 48px 100px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+/* Subtle grid bg for about section */
+.about-section::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(139,92,246,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(139,92,246,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  border-radius: 32px;
+}
+
+.section-label {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(244,63,94,0.08);
+  border: 1px solid rgba(244,63,94,0.25);
+  color: var(--coral);
+  font-size: 10px; font-weight: 700;
+  padding: 6px 16px; border-radius: 50px;
+  text-transform: uppercase; letter-spacing: 2px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 20px rgba(244,63,94,0.1);
+}
+
+.section-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 50px; font-weight: 900;
+  line-height: 1.05; letter-spacing: -2px;
+  margin-bottom: 18px;
+}
+.section-title .hl {
+  background: linear-gradient(135deg, var(--violet), var(--coral));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+
+.section-desc {
+  font-size: 15px; color: rgba(180,200,240,0.55); line-height: 1.8;
+  max-width: 560px; margin-bottom: 56px;
+}
+
+/* Dashboard preview */
+.dash-preview {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 56px;
+}
+
+.dash-card {
+  background: rgba(8,14,28,0.7);
+  border: 1px solid rgba(139,92,246,0.14);
+  border-radius: 20px;
+  padding: 28px;
+  backdrop-filter: blur(16px);
+  transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+  position: relative; overflow: hidden;
+}
+.dash-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--violet), transparent);
+  border-radius: 20px 20px 0 0;
+}
+.dash-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(139,92,246,0.4);
+  box-shadow: 0 24px 60px rgba(0,0,0,0.4), 0 0 40px rgba(139,92,246,0.12);
+}
+.dash-card.pink-border { border-color: rgba(244,63,94,0.15); }
+.dash-card.pink-border::before { background: linear-gradient(90deg, var(--coral), transparent); }
+.dash-card.pink-border:hover   { border-color: rgba(244,63,94,0.45); box-shadow: 0 24px 60px rgba(0,0,0,0.4), 0 0 40px rgba(244,63,94,0.12); }
+.dash-card.purp-border { border-color: rgba(59,130,246,0.15); }
+.dash-card.purp-border::before { background: linear-gradient(90deg, var(--blue), transparent); }
+.dash-card.purp-border:hover   { border-color: rgba(59,130,246,0.45); box-shadow: 0 24px 60px rgba(0,0,0,0.4), 0 0 40px rgba(59,130,246,0.12); }
+
+.dc-icon {
+  width: 48px; height: 48px; border-radius: 14px;
+  background: rgba(139,92,246,0.12);
+  border: 1px solid rgba(139,92,246,0.2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 16px;
+  box-shadow: 0 0 20px rgba(139,92,246,0.15);
+}
+.dc-icon.pink { background: rgba(244,63,94,0.12); border-color: rgba(244,63,94,0.2); box-shadow: 0 0 20px rgba(244,63,94,0.15); }
+.dc-title { font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+.dc-desc  { font-size: 12px; color: rgba(180,200,240,0.5); line-height: 1.65; }
+.dc-tag   { display: inline-block; margin-top: 14px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; padding: 4px 10px; border-radius: 6px; }
+.dc-tag.cyan  { background: rgba(139,92,246,0.12); color: var(--violet); border: 1px solid rgba(139,92,246,0.25); }
+.dc-tag.pink  { background: rgba(244,63,94,0.12); color: var(--coral); border: 1px solid rgba(244,63,94,0.25); }
+.dc-tag.purp  { background: rgba(59,130,246,0.12); color: var(--blue); border: 1px solid rgba(59,130,246,0.25); }
+
+/* Feature list */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.feat-item {
+  display: flex; align-items: flex-start; gap: 16px;
+  background: rgba(8,14,28,0.6);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 16px;
+  padding: 20px;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.feat-item:hover { border-color: rgba(139,92,246,0.3); transform: translateX(6px); box-shadow: 0 8px 30px rgba(139,92,246,0.08); }
+.feat-icon {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.feat-icon.c { background: rgba(139,92,246,0.12); box-shadow: 0 0 16px rgba(139,92,246,0.2); border: 1px solid rgba(139,92,246,0.2); }
+.feat-icon.p { background: rgba(244,63,94,0.12); box-shadow: 0 0 16px rgba(244,63,94,0.2); border: 1px solid rgba(244,63,94,0.2); }
+.feat-icon.v { background: rgba(59,130,246,0.12); box-shadow: 0 0 16px rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.2); }
+.feat-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 5px; }
+.feat-desc  { font-size: 11px; color: rgba(180,200,240,0.5); line-height: 1.6; }
+
+/* ── Animations ── */
+@keyframes fadeDown { from{opacity:0;transform:translateY(-20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeUp   { from{opacity:0;transform:translateY(28px)}  to{opacity:1;transform:translateY(0)} }
+
+/* ── Responsive ── */
+@media (max-width: 1100px) {
+  .stage { flex-direction: column; align-items: center; }
+  .hud-panel { flex-direction: row; flex: none; width: 100%; max-width: 700px; }
+  .dash-preview { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  .nav { top: 10px; width: calc(100% - 24px); padding: 0 20px; }
+  .hero-title { font-size: 44px; letter-spacing: -2px; }
+  .hud-panel { flex-direction: column; }
+  .form-grid { grid-template-columns: 1fr 1fr; }
+  .dash-preview { grid-template-columns: 1fr; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .about-section { padding: 80px 24px 60px; }
+  .section-title { font-size: 36px; }
+}
+  </style>
+</head>
+<body>
+
+<!-- Aurora background -->
+<div class="aurora">
+  <div class="aurora-blob a1"></div>
+  <div class="aurora-blob a2"></div>
+  <div class="aurora-blob a3"></div>
+</div>
+
+<!-- Background canvas (particles + grid) -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- ════ NAV ════ -->
+<nav class="nav" id="main-nav">
+  <div class="nav-logo">
+    <svg viewBox="0 0 28 28" fill="none">
+      <path d="M14 24s-9-5.5-9-12a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 6.5-9 12-9 12z" fill="url(#hg2)" stroke="rgba(139,92,246,0.7)" stroke-width="0.5"/>
+      <defs><linearGradient id="hg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#f43f5e"/></linearGradient></defs>
+    </svg>
+    CardioViz 3D
+  </div>
+  <ul class="nav-links">
+    <li><a href="#hero">Home</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#hero" class="nav-btn">Start Analysis</a></li>
+  </ul>
+</nav>
+
+<!-- ════ HERO ════ -->
+<section class="hero" id="hero">
+  <div class="glow-blob left"></div>
+  <div class="glow-blob right"></div>
+  <div class="glow-blob top"></div>
+
+  <!-- ECG strip -->
+  <svg class="ecg-strip" viewBox="0 0 1400 60" preserveAspectRatio="none" height="60">
+    <polyline id="ecg-poly" points="" stroke="#00d4ff" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <polyline id="ecg-poly2" points="" stroke="#ff2d78" stroke-width="1" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+  </svg>
+
+  <div class="hero-badge"><span class="badge-dot"></span> AI-Powered Cardiac Visualization</div>
+
+  <h1 class="hero-title">
+    <span class="t1">Heart Disease&nbsp;</span><span class="t2">Detection</span>
+  </h1>
+
+
+  <!-- 3-column stage -->
+  <div class="stage">
+
+    <!-- LEFT HUD -->
+    <div class="hud-panel">
+      <div class="hud-card">
+        <div class="hud-label"><span class="hud-label-dot"></span> Heart Analysis</div>
+        <div class="bar-chart" id="bar-chart-left">
+          <div class="bar-col cyan" style="height:35%"></div>
+          <div class="bar-col pink" style="height:55%"></div>
+          <div class="bar-col cyan" style="height:45%"></div>
+          <div class="bar-col purp" style="height:70%"></div>
+          <div class="bar-col pink" style="height:40%"></div>
+          <div class="bar-col cyan" style="height:60%"></div>
+          <div class="bar-col purp" style="height:50%"></div>
+        </div>
+      </div>
+      <div class="hud-card pink-card">
+        <div class="hud-label pink"><span class="hud-label-dot"></span> Structures</div>
+        <div class="donut-wrap">
+          <svg class="donut-svg" width="64" height="64" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="24" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="10"/>
+            <circle cx="32" cy="32" r="24" fill="none" stroke="#00d4ff" stroke-width="10" stroke-dasharray="60 91" stroke-dashoffset="0" stroke-linecap="round"/>
+            <circle cx="32" cy="32" r="24" fill="none" stroke="#ff2d78" stroke-width="10" stroke-dasharray="35 91" stroke-dashoffset="-60" stroke-linecap="round"/>
+            <circle cx="32" cy="32" r="24" fill="none" stroke="#7b2fff" stroke-width="10" stroke-dasharray="20 91" stroke-dashoffset="-95" stroke-linecap="round"/>
+            <text x="32" y="36" text-anchor="middle" fill="#fff" font-size="11" font-weight="900">21</text>
+          </svg>
+          <div class="donut-legend">
+            <div class="legend-item"><span class="legend-dot" style="background:#00d4ff"></span>Chambers</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#ff2d78"></span>Vessels</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#7b2fff"></span>Valves</div>
+          </div>
+        </div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label"><span class="hud-label-dot"></span> Ejection Fraction</div>
+        <div class="metric-row">
+          <div><div class="metric-val">65<span style="font-size:14px">%</span></div><div class="metric-unit">Normal Range</div></div>
+          <div class="metric-change up">▲ Normal</div>
+        </div>
+        <svg class="sparkline" viewBox="0 0 120 28" fill="none">
+          <polyline points="0,20 15,16 30,18 45,10 60,14 75,8 90,12 105,6 120,10" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <polyline points="0,20 15,16 30,18 45,10 60,14 75,8 90,12 105,6 120,10" stroke="rgba(0,212,255,0.15)" stroke-width="6" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- RIGHT HUD -->
+    <div class="hud-panel">
+      <div class="hud-card pink-card">
+        <div class="hud-label pink"><span class="hud-label-dot"></span> ECG Monitor</div>
+        <canvas id="ecg-canvas" width="240" height="50" style="width:100%;height:50px;display:block;"></canvas>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label"><span class="hud-label-dot"></span> Vital Signs</div>
+        <div class="status-list">
+          <div class="status-item">
+            <span style="min-width:60px;font-size:10px;">Heart Rate</span>
+            <div class="status-bar-wrap"><div class="status-bar-fill" style="width:72%;background:linear-gradient(90deg,#00d4ff,#7b2fff);box-shadow:0 0 8px rgba(0,212,255,0.4)"></div></div>
+            <span style="font-size:10px;color:#00d4ff;min-width:32px;text-align:right;" id="hr-disp">72</span>
+          </div>
+          <div class="status-item">
+            <span style="min-width:60px;font-size:10px;">Blood Press.</span>
+            <div class="status-bar-wrap"><div class="status-bar-fill" style="width:80%;background:linear-gradient(90deg,#ff2d78,#7b2fff);box-shadow:0 0 8px rgba(255,45,120,0.4)"></div></div>
+            <span style="font-size:10px;color:#ff2d78;min-width:32px;text-align:right;">120</span>
+          </div>
+          <div class="status-item">
+            <span style="min-width:60px;font-size:10px;">O₂ Saturation</span>
+            <div class="status-bar-wrap"><div class="status-bar-fill" style="width:97%;background:linear-gradient(90deg,#00d4ff,#00ff88);box-shadow:0 0 8px rgba(0,212,255,0.4)"></div></div>
+            <span style="font-size:10px;color:#00d4ff;min-width:32px;text-align:right;">97%</span>
+          </div>
+        </div>
+      </div>
+      <div class="hud-card pink-card">
+        <div class="hud-label pink"><span class="hud-label-dot"></span> Heart Rate</div>
+        <div class="metric-row">
+          <div><div class="metric-val pink" id="bpm-val">72</div><div class="metric-unit">BPM</div></div>
+          <div class="metric-change warn">● Live</div>
+        </div>
+        <div style="display:flex;gap:3px;align-items:flex-end;height:28px;margin-top:6px;" id="bpm-bars">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM -->
+  <div class="form-section">
+    <div class="form-hud">
+      <div class="steps-row">
+        <div class="step-pill active"><span class="step-num">1</span> Patient</div>
+        <div class="step-pill inactive"><span class="step-num">2</span> Upload</div>
+        <div class="step-pill inactive"><span class="step-num">3</span> 3D View</div>
+        <div class="step-pill inactive"><span class="step-num">4</span> Report</div>
+      </div>
+      <div class="form-hud-title"><span>⬡</span> Patient Information</div>
+      <div class="form-hud-sub">Enter details below, then click <strong style="color:var(--cyan)">Begin Analysis</strong> to upload your video report</div>
+      <form id="patient-form" novalidate>
+        <div class="form-grid">
+
+          <div class="form-group fg-full">
+            <label class="form-lbl">Full Name <span style="color:var(--pink)">*</span></label>
+            <input class="form-inp" type="text" id="name" placeholder="e.g. John Smith" required autocomplete="off"/>
+            <span class="form-err" id="err-name"></span>
+          </div>
+
+          <div class="form-group fg-half">
+            <label class="form-lbl">Patient ID <span style="color:var(--pink)">*</span></label>
+            <input class="form-inp" type="text" id="patient_id" placeholder="PT-2024-001" required autocomplete="off"/>
+            <span class="form-err" id="err-patient_id"></span>
+          </div>
+
+          <div class="form-group fg-half">
+            <label class="form-lbl">Age <span style="color:var(--pink)">*</span></label>
+            <input class="form-inp" type="number" id="age" placeholder="54" min="1" max="120" required/>
+            <span class="form-err" id="err-age"></span>
+          </div>
+
+          <div class="form-group fg-half">
+            <label class="form-lbl">Gender <span style="color:var(--pink)">*</span></label>
+            <select class="form-inp" id="gender" required>
+              <option value="">Select gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+            <span class="form-err" id="err-gender"></span>
+          </div>
+
+          <div class="form-group fg-half">
+            <label class="form-lbl">Report Date <span style="color:var(--pink)">*</span></label>
+            <input class="form-inp" type="date" id="report_date" required/>
+            <span class="form-err" id="err-report_date"></span>
+          </div>
+
+        </div>
+
+        <!-- Submit button — full width, below all fields -->
+        <button type="submit" class="submit-btn" id="btn-submit" style="margin-top:18px;">
+          <span id="btn-text">&#9654; Begin Analysis &amp; Upload Video</span>
+          <span id="btn-arrow"></span>
+        </button>
+
+        <div class="form-err-msg" id="form-error" style="display:none;"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ════ ABOUT / DASHBOARD SECTION ════ -->
+<section class="about-section" id="about">
+  <div class="section-label">⬡ About the System</div>
+  <h2 class="section-title">Holographic <span class="hl">Cardiac Dashboard</span></h2>
+  <p class="section-desc">
+    CardioViz 3D combines AI video analysis with real-time WebGL rendering to give clinicians
+    and researchers an interactive, anatomically accurate 3D heart model — with disease
+    regions highlighted only where detected.
+  </p>
+
+  <!-- Dashboard feature cards -->
+  <div class="dash-preview">
+    <div class="dash-card">
+      <div class="dc-icon">🫀</div>
+      <div class="dc-title">3D Heart Visualization</div>
+      <div class="dc-desc">21 anatomical structures rendered as separate procedural meshes with medical color coding. Semi-transparent outer wall reveals inner chambers, valves, and vessels.</div>
+      <span class="dc-tag cyan">WebGL · Three.js</span>
+    </div>
+    <div class="dash-card pink-border">
+      <div class="dc-icon pink">🎬</div>
+      <div class="dc-title">AI Video Analysis</div>
+      <div class="dc-desc">Upload MP4 angiography or echocardiogram footage. OpenCV extracts frames, enhances contrast, and detects arterial narrowing, blockages, and abnormal flow patterns.</div>
+      <span class="dc-tag pink">OpenCV · Python</span>
+    </div>
+    <div class="dash-card purp-border">
+      <div class="dc-icon" style="filter:drop-shadow(0 0 10px rgba(123,47,255,0.5))">📊</div>
+      <div class="dc-title">Diagnosis Report</div>
+      <div class="dc-desc">Detailed findings table with severity classification (mild / moderate / severe), affected area percentage, clinical notes, and printable PDF-ready layout.</div>
+      <span class="dc-tag purp">REST API · Flask</span>
+    </div>
+    <div class="dash-card">
+      <div class="dc-icon">🎛️</div>
+      <div class="dc-title">Interactive Controls</div>
+      <div class="dc-desc">Transparency sliders per layer, visibility toggles for chambers/vessels/valves, cross-section slicing, blood flow animation, and auto-rotate with manual orbit.</div>
+      <span class="dc-tag cyan">Real-time</span>
+    </div>
+    <div class="dash-card pink-border">
+      <div class="dc-icon pink">🔬</div>
+      <div class="dc-title">Disease Highlighting</div>
+      <div class="dc-desc">Affected structures glow yellow→orange→red by severity with pulsing animation. All healthy anatomy remains at original medical colors — no false positives.</div>
+      <span class="dc-tag pink">AI Detection</span>
+    </div>
+    <div class="dash-card purp-border">
+      <div class="dc-icon" style="filter:drop-shadow(0 0 10px rgba(123,47,255,0.5))">💾</div>
+      <div class="dc-title">Export & Share</div>
+      <div class="dc-desc">Export the 3D heart model as OBJ or STL for use in external tools. Capture labeled screenshots with patient info overlay for inclusion in clinical reports.</div>
+      <span class="dc-tag purp">OBJ · STL · PNG</span>
+    </div>
+  </div>
+
+  <!-- Feature list -->
+  <div id="features" style="padding-top:20px;">
+    <div class="section-label" style="margin-bottom:24px;">⬡ System Features</div>
+    <div class="feature-grid">
+      <div class="feat-item">
+        <div class="feat-icon c">❤️</div>
+        <div><div class="feat-title">Anatomically Accurate Model</div><div class="feat-desc">All 21 structures built from procedural geometry — no placeholder shapes. Correct proportions, organic curves, and realistic vessel branching.</div></div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-icon p">🧠</div>
+        <div><div class="feat-title">AI Abnormality Detection</div><div class="feat-desc">Frame-by-frame analysis detects artery narrowing, blockages, and abnormal flow. Maps findings to specific anatomical regions automatically.</div></div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-icon v">🔭</div>
+        <div><div class="feat-title">Transparent Layered View</div><div class="feat-desc">Individual opacity control per layer. Outer wall at 65% transparency reveals chambers. Vessels and valves independently adjustable.</div></div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-icon c">⚡</div>
+        <div><div class="feat-title">Real-time Blood Flow</div><div class="feat-desc">Animated particle flow through chambers and vessels. Toggle on/off. Follows anatomically correct oxygenated and deoxygenated pathways.</div></div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-icon p">📋</div>
+        <div><div class="feat-title">Multi-page Workflow</div><div class="feat-desc">Patient entry → MP4 upload → 3D dashboard → diagnosis report. Session-based with persistent data across all four pages.</div></div>
+      </div>
+      <div class="feat-item">
+        <div class="feat-icon v">🖥️</div>
+        <div><div class="feat-title">Medical-Grade UI</div><div class="feat-desc">Dark holographic theme with neon accents. HUD panels, ECG monitor, vital signs display, and findings chips — all in a single dashboard view.</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════ SCRIPTS ════ -->
+<script>
+/* ─── 1. BACKGROUND CANVAS (particles + grid) ─── */
+(function(){
+  const c = document.getElementById('bg-canvas');
+  const ctx = c.getContext('2d');
+  let W, H;
+  const pts = [];
+  let mx = -999, my = -999;
+
+  function resize(){ W = c.width = window.innerWidth; H = c.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+  for(let i=0;i<70;i++) pts.push({
+    x: Math.random()*2000, y: Math.random()*2000,
+    vx:(Math.random()-.5)*.3, vy:(Math.random()-.5)*.3,
+    r: Math.random()*1.8+.4,
+    col: Math.random()>.5?'0,212,255':'255,45,120'
+  });
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // Connections
+    for(let i=0;i<pts.length;i++) for(let j=i+1;j<pts.length;j++){
+      const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y, d=Math.sqrt(dx*dx+dy*dy);
+      if(d<130){ ctx.beginPath(); ctx.strokeStyle=`rgba(0,212,255,${.06*(1-d/130)})`; ctx.lineWidth=.6; ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.stroke(); }
+    }
+    pts.forEach(p=>{
+      const dx=p.x-mx, dy=p.y-my, d=Math.sqrt(dx*dx+dy*dy);
+      if(d<120){ p.vx+=dx/d*.25; p.vy+=dy/d*.25; }
+      p.vx*=.97; p.vy*=.97;
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(${p.col},.5)`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ─── 2. ECG STRIP (hero SVG) ─── */
+(function(){
+  const poly  = document.getElementById('ecg-poly');
+  const poly2 = document.getElementById('ecg-poly2');
+  const beat  = [0,0,0,0,0,0,0,0,.05,.1,.05,0,-.05,0,0,.9,-1.4,.9,0,.12,.22,.16,.1,.05,0,0,0,0,0,0,0,0];
+  let off=0, trail=new Array(140).fill(0), trail2=new Array(140).fill(0);
+  let off2=16;
+
+  function tick(){
+    trail.shift(); trail.push(beat[Math.floor(off)%beat.length]); off+=.5;
+    trail2.shift(); trail2.push(beat[Math.floor(off2)%beat.length]); off2+=.5;
+    const pts  = trail.map((v,i)=>`${i*10},${30-v*22}`).join(' ');
+    const pts2 = trail2.map((v,i)=>`${i*10+700},${30-v*18}`).join(' ');
+    poly.setAttribute('points', pts);
+    poly2.setAttribute('points', pts2);
+    requestAnimationFrame(tick);
+  }
+  tick();
+})();
+
+/* ─── 4. ECG CANVAS (right HUD) ─── */
+(function(){
+  const c=document.getElementById('ecg-canvas'), ctx=c.getContext('2d');
+  const beat=[0,0,0,0,0,0,0,0,.05,.1,.05,0,-.05,0,0,.85,-1.3,.85,0,.1,.2,.15,.1,.05,0,0,0,0,0,0,0,0];
+  let off=0, trail=new Array(240).fill(0);
+  function draw(){
+    ctx.clearRect(0,0,240,50);
+    // Grid
+    ctx.strokeStyle='rgba(255,45,120,0.08)'; ctx.lineWidth=.5;
+    for(let x=0;x<240;x+=24){ ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,50);ctx.stroke(); }
+    for(let y=0;y<50;y+=12){ ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(240,y);ctx.stroke(); }
+    trail.shift(); trail.push(beat[Math.floor(off)%beat.length]); off+=.55;
+    ctx.beginPath(); ctx.strokeStyle='#ff2d78'; ctx.lineWidth=1.8;
+    ctx.shadowColor='#ff2d78'; ctx.shadowBlur=6;
+    trail.forEach((v,i)=>{ const x=i,y=25-v*18; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+    ctx.stroke(); ctx.shadowBlur=0;
+    // Tip dot
+    const ly=25-trail[239]*18;
+    ctx.beginPath(); ctx.arc(239,ly,2.5,0,Math.PI*2);
+    ctx.fillStyle='#ff2d78'; ctx.shadowColor='#ff2d78'; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ─── 5. BPM BARS ─── */
+(function(){
+  const wrap=document.getElementById('bpm-bars');
+  const bpmEl=document.getElementById('bpm-val');
+  const hrDisp=document.getElementById('hr-disp');
+  const N=16;
+  for(let i=0;i<N;i++){ const d=document.createElement('div'); d.style.cssText='flex:1;border-radius:2px 2px 0 0;background:rgba(255,45,120,0.25);transition:height .15s ease;'; wrap.appendChild(d); }
+  const segs=wrap.children;
+  let bpm=72, tick=0;
+  const heights=[3,4,6,10,20,28,18,10,6,4,3,3,4,5,4,3];
+  function anim(){
+    tick++;
+    if(tick%90===0){ bpm=66+Math.floor(Math.random()*18); bpmEl.textContent=bpm; hrDisp.textContent=bpm; }
+    const phase=Math.floor(tick/6)%N;
+    Array.from(segs).forEach((s,i)=>{
+      const active=i===phase;
+      s.style.height=(active?heights[i]+6:heights[i])+'px';
+      s.style.background=active?'#ff2d78':'rgba(255,45,120,0.25)';
+      s.style.boxShadow=active?'0 0 8px rgba(255,45,120,0.7)':'none';
+    });
+    requestAnimationFrame(anim);
+  }
+  anim();
+})();
+
+/* ─── 6. NAV SCROLL ─── */
+window.addEventListener('scroll',()=>{
+  document.getElementById('main-nav').style.background=
+    window.scrollY>40?'rgba(6,13,28,0.97)':'rgba(6,13,28,0.75)';
+});
+
+/* ─── 7. SCROLL REVEAL ─── */
+(function(){
+  const obs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{ if(e.isIntersecting){ e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; } });
+  },{threshold:.08});
+  document.querySelectorAll('.dash-card,.feat-item').forEach(el=>{
+    el.style.opacity='0'; el.style.transform='translateY(30px)'; el.style.transition='opacity .6s ease, transform .6s ease';
+    obs.observe(el);
+  });
+})();
+</script>
+
+<!-- ════ FORM HANDLER — isolated script so 3D errors can't break it ════ -->
+<script>
+(function() {
+  'use strict';
+
+  // Set today's date
+  var dateEl = document.getElementById('report_date');
+  if (dateEl) dateEl.valueAsDate = new Date();
+
+  var API = 'http://localhost:5000';
+
+  var form = document.getElementById('patient-form');
+  if (!form) return;
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    clearErr();
+
+    var d = {
+      name:        (document.getElementById('name').value || '').trim(),
+      patient_id:  (document.getElementById('patient_id').value || '').trim(),
+      age:          document.getElementById('age').value,
+      gender:       document.getElementById('gender').value,
+      report_date:  document.getElementById('report_date').value,
+    };
+
+    var ok = true;
+    if (!d.name)           { showErr('name',        'Full name is required');   ok = false; }
+    if (!d.patient_id)     { showErr('patient_id',  'Patient ID is required');  ok = false; }
+    if (!d.age || +d.age < 1) { showErr('age',      'Enter a valid age');       ok = false; }
+    if (!d.gender)         { showErr('gender',      'Please select gender');    ok = false; }
+    if (!d.report_date)    { showErr('report_date', 'Report date is required'); ok = false; }
+    if (!ok) return;
+
+    var btn     = document.getElementById('btn-submit');
+    var btnText = document.getElementById('btn-text');
+    btn.disabled = true;
+    if (btnText) btnText.textContent = '⏳ Saving…';
+
+    fetch(API + '/api/patient', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(d)
+    })
+    .then(function(r) {
+      return r.json().then(function(j) {
+        if (!r.ok) throw new Error(j.error || 'Server error ' + r.status);
+        return j;
+      });
+    })
+    .then(function(j) {
+      sessionStorage.setItem('session_id', j.session_id);
+      sessionStorage.setItem('patient',    JSON.stringify(d));
+      if (btnText) btnText.textContent = '✓ Opening…';
+      // Hard redirect — most reliable
+      window.location.href = 'upload.html?sid=' + j.session_id;
+    })
+    .catch(function(err) {
+      var errEl = document.getElementById('form-error');
+      if (errEl) { errEl.textContent = '⚠ ' + err.message; errEl.style.display = 'block'; }
+      btn.disabled = false;
+      if (btnText) btnText.textContent = '▶ Begin Analysis & Upload Video';
+    });
+  });
+
+  function showErr(f, m) {
+    var e = document.getElementById('err-' + f);
+    var i = document.getElementById(f);
+    if (e) e.textContent = m;
+    if (i) i.classList.add('err');
+  }
+  function clearErr() {
+    document.querySelectorAll('.form-err').forEach(function(e){ e.textContent=''; });
+    document.querySelectorAll('.form-inp.err').forEach(function(e){ e.classList.remove('err'); });
+    var errEl = document.getElementById('form-error');
+    if (errEl) errEl.style.display = 'none';
+  }
+})();
+</script>
+</body>
+</html>
